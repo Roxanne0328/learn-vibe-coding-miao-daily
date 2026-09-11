@@ -21,6 +21,16 @@ function doRequest(options, data) {
           else if (enc === 'deflate') body = zlib.inflateSync(body);
           else if (enc === 'br') body = zlib.brotliDecompressSync(body);
         } catch (e) { /* 解不开就按原文返回 */ }
+        // 第二道保险：不看响应头，直接按文件魔数判断。
+        // 有些情况下 content-encoding 头会在中途丢失，但数据本身还是压缩的
+        // （v1.1.2 的元凶就是它：1f 8b → 被 toString('utf8') 变成 1f efbfbd）
+        try {
+          if (body.length > 2 && body[0] === 0x1f && body[1] === 0x8b) {
+            body = zlib.gunzipSync(body);
+          } else if (body.length > 2 && body[0] === 0x78) {
+            body = zlib.inflateSync(body);
+          }
+        } catch (e) { /* 解不开就按原文返回 */ }
         resolve({ statusCode: res.statusCode, headers: res.headers, body: body });
       });
     });

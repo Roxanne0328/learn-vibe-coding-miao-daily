@@ -1,1 +1,7 @@
-{"name":"supabase-proxy","version":"1.0.0","description":"Proxy Supabase API requests for domestic access","main":"index.js"}
+{
+  "name": "supabase-proxy",
+  "version": "1.1.2",
+  "description": "把 /sb/* 请求转发到 Supabase，解决国内手机直连 supabase.co 不稳定的问题",
+  "main": "index.js",
+  "dependencies": {}
+}
