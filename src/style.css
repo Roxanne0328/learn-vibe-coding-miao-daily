@@ -51,6 +51,17 @@
   color: var(--text-soft);
   font-size: 15px;
 }
+.auth-gate-fallback {
+  display: inline-block;
+  margin-top: 18px;
+  padding: 9px 20px;
+  border-radius: 999px;
+  background: var(--accent, #ff9a76);
+  color: #fff;
+  font-size: 14px;
+  text-decoration: none;
+  box-shadow: 0 6px 16px rgba(255, 154, 118, 0.35);
+}
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }

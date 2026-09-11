@@ -113,6 +113,11 @@
     }
     // 兜底：即便网络卡住（如 supabase.co 访问超时），也不无限转圈，6 秒后跳登录页
     var guard = setTimeout(goLogin, 6000);
+    // 双保险：9 秒后若仍在校验中，显示「去登录页」按钮，绝不死等
+    setTimeout(function () {
+      var fb = document.getElementById('gateFallback');
+      if (fb && !forwarded) fb.style.display = 'inline-block';
+    }, 9000);
     try {
       c.auth.getSession().then(function (res) {
         clearTimeout(guard);
