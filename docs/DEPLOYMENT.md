@@ -147,6 +147,8 @@ curl -sI -A "Mozilla/5.0 (iPhone...)" "https://<bucket>.cos-website.ap-shanghai.
 
 **解法**：登录改为**不发任何网络请求**——`access_token` 本身就是 JWT，本地 base64 解码 payload 即可拿到 `sub`（用户 ID）：
 
+> ✅ **后续（2026-09-12 02:20）**：修复版云函数已部署（探针头 `X-Proxy-Version: 1.1.2-fix2`），并对数据同步这类**必须走网络**的请求加了**魔数兜底解压**——不看 `content-encoding` 头，直接按 `1f 8b` 文件头识别 gzip 并解压，即使上游忽略 `identity` 要求也能自愈。手机端数据同步通道已恢复。
+
 ```js
 function decodeJwtPayload(token) {
   var seg = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
@@ -252,10 +254,20 @@ fetch(cfg.url+'/auth/v1/otp?redirect_to='+encodeURIComponent(to),{
 | 问题 | 影响 | 彻底解法 |
 |------|------|---------|
 | 手机点链接仍会回登录页 | 需用粘贴通道绕过 | ① 域名 **ICP 备案**去掉「确定访问」中间页；② 改 **6 位验证码登录**（邮件模板内容换成 `{{ .Token }}`，前端加验证码输入框），完全不依赖跳转 |
-| 云端数据同步在手机可能不灵 | 换设备看不到数据 | 部署修好压缩 bug 的云函数包 `tencent-scf/supabase-proxy.zip` |
+| ~~云端数据同步在手机可能不灵~~ | ✅ **已解决（2026-09-12 02:20）** | 修复版云函数已部署（探针头 `X-Proxy-Version: 1.1.2-fix2` 可远程验证），手机端同步通道恢复 |
 | 「确定访问」中间页 | 首次访问多点一次 | 等 ICP 备案通过 |
 
 改成 6 位验证码后，**手机和电脑的体验就完全一致了**：填邮箱 → 收 6 位数字 → 填进去 → 进。不挑浏览器、不挑邮件 App，比点链接还稳。
+
+### 云函数版本探针
+
+云函数响应带 `X-Proxy-Version` 头，随时可以远程确认线上跑的是哪版：
+
+```bash
+curl -sI "https://miao-daily-d1gmyiugua09ec60d-1484425697.ap-shanghai.app.tcloudbase.com/sb/auth/v1/user" \
+  | grep -i x-proxy
+# 当前应为：X-Proxy-Version: 1.1.2-fix2
+```
 
 ---
 
