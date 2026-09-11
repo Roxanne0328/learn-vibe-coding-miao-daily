@@ -1,5 +1,5 @@
 /* ============================================================
-   喵日常 v2.0 · 登录页样式
+   喵日常 v1.1 · 登录页样式
    视觉语言沿用 v1.0：奶油米色 + 蓝粉橘 + 磨砂玻璃 + 圆滚滚小猫
    ============================================================ */
 
@@ -14,6 +14,7 @@
   --text-faint: #C7B8AA;
   --warning:    #FFA07A;
   --warning-light: #FFB6C1;
+  --danger:     #E57373;
   --shadow-card: 0 8px 24px rgba(90, 74, 66, 0.08);
   --shadow-hover: 0 12px 36px rgba(90, 74, 66, 0.12);
 }
@@ -159,6 +160,15 @@ body {
 .login-input:valid:not(:placeholder-shown) {
   border-color: var(--orange-deep);
 }
+.login-email-error {
+  display: none;
+  color: var(--danger);
+  font-size: 12px;
+  margin-top: -6px;
+}
+.login-input:invalid:not(:placeholder-shown) ~ .login-email-error {
+  display: block;
+}
 
 /* ---------- 主提交按钮（醒目渐变） ---------- */
 .login-submit {
@@ -182,6 +192,23 @@ body {
 .login-submit:active {
   transform: translateY(0);
 }
+.login-submit:disabled {
+  opacity: 0.7;
+  cursor: default;
+  transform: none;
+}
+
+/* ---------- 状态提示（成功/失败） ---------- */
+.login-msg {
+  margin-top: 12px;
+  font-size: 13px;
+  text-align: center;
+  line-height: 1.5;
+  min-height: 1px;
+  word-break: break-word;
+}
+.login-msg.ok { color: #2E9E6B; }
+.login-msg.err { color: var(--danger); }
 
 /* ---------- 底部提示 ---------- */
 .login-hint {
