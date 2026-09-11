@@ -105,23 +105,33 @@
   function boot() {
     var c = window.supabaseClient;
     if (!c) { hideGate(); init(); return; } // 没接 Supabase 时退回纯本地模式
-    c.auth.getSession().then(function (res) {
-      var session = res && res.data && res.data.session;
-      if (session) { startApp(session.user.id); return; }
-      // 可能还在从邮件链接的 URL 里恢复登录态
-      var handled = false;
-      c.auth.onAuthStateChange(function (event, sess) {
-        if (!handled && sess && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
-          handled = true;
-          startApp(sess.user.id);
-        } else if (event === 'SIGNED_OUT') {
-          window.location.href = 'login.html';
-        }
-      });
-      setTimeout(function () {
-        if (!handled) window.location.href = 'login.html';
-      }, 2500);
-    });
+    var forwarded = false;
+    function goLogin() {
+      if (forwarded) return;
+      forwarded = true;
+      window.location.href = 'login.html';
+    }
+    // 兜底：即便网络卡住（如 supabase.co 访问超时），也不无限转圈，6 秒后跳登录页
+    var guard = setTimeout(goLogin, 6000);
+    try {
+      c.auth.getSession().then(function (res) {
+        clearTimeout(guard);
+        var session = res && res.data && res.data.session;
+        if (session) { startApp(session.user.id); return; }
+        // 可能还在从邮件链接的 URL 里恢复登录态
+        c.auth.onAuthStateChange(function (event, sess) {
+          if (!forwarded && sess && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+            forwarded = true; clearTimeout(guard);
+            startApp(sess.user.id);
+          } else if (event === 'SIGNED_OUT') {
+            window.location.href = 'login.html';
+          }
+        });
+        setTimeout(goLogin, 2500);
+      }).catch(function () { clearTimeout(guard); goLogin(); });
+    } catch (e) {
+      clearTimeout(guard); goLogin();
+    }
   }
 
   function load(key, defaultValue) {
