@@ -26,7 +26,7 @@
 搭建目录结构、空 HTML/CSS/JS 文件、`.gitignore`，完成第一次 git commit。
 
 ### 涉及文件
-- `mias-cute-planner/`
+- `miao-daily/`
   - `src/index.html`（空骨架）
   - `src/style.css`（空，`:root` token）
   - `src/app.js`（IIFE 包裹的空函数）
