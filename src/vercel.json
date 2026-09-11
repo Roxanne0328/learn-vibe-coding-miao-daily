@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/sb/(.*)",
+      "destination": "https://elvlygokedgbaihbdgrg.supabase.co/$1"
+    }
+  ]
+}
