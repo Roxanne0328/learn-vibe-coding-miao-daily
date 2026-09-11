@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>喵日常 · 登录</title>
-  <link rel="stylesheet" href="style.login.css?v=11">
+  <link rel="stylesheet" href="style.login.css?v=12">
 </head>
 <body>
 
@@ -45,28 +45,49 @@
     <!-- 登录卡片 -->
     <section class="login-card">
       <div class="login-card-header">
-        <h2 class="login-card-title">📮 邮箱魔法链接登录</h2>
+        <h2 class="login-card-title">📮 邮箱验证码登录</h2>
       </div>
-      <p class="login-desc">输入邮箱，我们会发一封「魔法链接」到你邮箱，点一下就能登录啦～</p>
+      <p class="login-desc">输入邮箱，我们会发一个 6 位验证码过去，填上就能登录啦～手机电脑都是同一套流程</p>
 
+      <!-- 第一步：邮箱 -->
       <form class="login-form" id="loginForm" novalidate>
         <label class="login-label" for="email">你的邮箱</label>
         <input type="email" id="email" class="login-input" placeholder="mimi@example.com" required>
         <p class="login-email-error" id="emailError">邮箱格式不对哦～</p>
-        <button type="submit" class="login-submit" id="sendMagicLink">✨ 发送魔法链接</button>
+        <button type="submit" class="login-submit" id="sendCode">📩 发送验证码</button>
       </form>
 
       <p class="login-msg" id="loginMsg" role="alert"></p>
 
-      <!-- 兜底通道：手机点链接进不去时，把链接复制粘贴进来直接登录 -->
-      <div class="login-paste">
-        <p class="login-paste-tip">📱 手机点链接进不去？长按邮件里的按钮 →「拷贝链接地址」→ 把整条链接粘到下面（长长的 supabase.co 链接也认），一样能登录～</p>
-        <input type="text" id="pasteLink" class="login-input login-paste-input" placeholder="把邮件里的链接粘贴到这里" autocomplete="off" spellcheck="false">
-        <button type="button" class="login-submit login-paste-btn" id="pasteBtn">🔗 用链接登录</button>
-        <p class="login-msg" id="pasteMsg" role="alert"></p>
+      <!-- 第二步：6 位验证码（发送成功后显示） -->
+      <div class="login-step2" id="step2" style="display:none;">
+        <p class="login-desc">验证码已发到 <strong id="sentTo"></strong>，查收邮件，把 6 位数字填进来～（10 分钟内有效）</p>
+        <div class="otp-row">
+          <input type="text" id="otpCode" class="login-input otp-input" inputmode="numeric"
+                 maxlength="6" placeholder="••••••" autocomplete="one-time-code"
+                 spellcheck="false">
+          <button type="button" class="login-submit otp-verify-btn" id="verifyCode">✅ 登录</button>
+        </div>
+        <p class="login-msg" id="verifyMsg" role="alert"></p>
+        <div class="login-step2-links">
+          <button type="button" class="login-linkbtn" id="resendCode">重新发送</button>
+          <span class="login-linkbtn-sep">·</span>
+          <button type="button" class="login-linkbtn" id="changeEmail">换个邮箱</button>
+        </div>
       </div>
 
-      <p class="login-hint">🐾 输入邮箱，邮件里一键登录～</p>
+      <!-- 兜底通道：验证码收不到/极端情况时，把邮件里的链接复制粘贴进来也能登录 -->
+      <details class="login-paste">
+        <summary class="login-paste-summary">收不到验证码？试试用邮件里的链接登录 ›</summary>
+        <div class="login-paste-body">
+          <p class="login-paste-tip">📱 长按邮件里的按钮 →「拷贝链接地址」→ 把整条链接粘到下面（长长的 supabase.co 链接也认），一样能登录～</p>
+          <input type="text" id="pasteLink" class="login-input login-paste-input" placeholder="把邮件里的链接粘贴到这里" autocomplete="off" spellcheck="false">
+          <button type="button" class="login-submit login-paste-btn" id="pasteBtn">🔗 用链接登录</button>
+          <p class="login-msg" id="pasteMsg" role="alert"></p>
+        </div>
+      </details>
+
+      <p class="login-hint">🐾 输入邮箱，验证码一键登录～</p>
     </section>
 
     <footer class="login-footer">
@@ -76,14 +97,14 @@
   </main>
 
   <!-- Supabase JS SDK (UMD 全局变量 supabase) -->
-  <script src="vendor/supabase-js.js?v=11"></script>
-  <!-- 本地配置（含 anon key，不进 GitHub） -->
-  <script src="config.js?v=11"></script>
+  <script src="vendor/supabase-js.js?v=12"></script>
+  <!-- 本地配置（含 anon key） -->
+  <script src="config.js?v=12"></script>
   <!-- 初始化客户端 -->
-  <script src="supabase.js?v=11"></script>
+  <script src="supabase.js?v=12"></script>
   <!-- 兜底登录：从粘贴的链接里拆凭证 -->
-  <script src="linklogin.js?v=11"></script>
+  <script src="linklogin.js?v=12"></script>
   <!-- 登录逻辑 -->
-  <script src="auth.js?v=11"></script>
+  <script src="auth.js?v=12"></script>
 </body>
 </html>
