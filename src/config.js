@@ -6,6 +6,6 @@
 //     如果浏览器控制台报 "invalid apikey" 或连不上，说明这里的值不对，请替换。
 //     获取路径：supabase.com/dashboard → 项目 miao-daily → Project Settings → API → anon public
 window.SUPABASE_CONFIG = {
-  url: 'https://elvlygokedgbaihbdgrg.supabase.co',
+  url: 'https://learn-vibe-coding-miao-daily.vercel.app/sb',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVsdmx5Z29rZWRnYmFpaGJkZ3JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxMDc5MzksImV4cCI6MjEwNDY4MzkzOX0.iqY8irlOVkOLIfnaMT2sabhuDBTx8pgdbwAxXRKqBgU'
 };
