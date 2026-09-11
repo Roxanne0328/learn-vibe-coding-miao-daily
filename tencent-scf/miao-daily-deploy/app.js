@@ -254,16 +254,24 @@
     var gateLinkBtn = document.getElementById('gateLinkBtn');
     if (gateLinkBtn) {
       gateLinkBtn.addEventListener('click', function () {
-        var r = window.miaoLoginByLink
-          ? window.miaoLoginByLink(document.getElementById('gateLink').value)
-          : { ok: false, err: '脚本没加载好，刷新一下再试' };
         var pm = document.getElementById('gatePasteMsg');
-        if (r.ok) {
+        var val = document.getElementById('gateLink').value;
+
+        // 通道一：链接里直接带凭证 → 本地拆，立即登录
+        var r = window.miaoLoginByLink ? window.miaoLoginByLink(val) : null;
+        if (r && r.ok) {
           if (pm) { pm.style.color = '#2E9E6B'; pm.textContent = '✅ 登录成功，正在进入～'; }
           startApp(r.userId);
-        } else {
-          if (pm) pm.textContent = '❌ ' + r.err;
+          return;
         }
+        // 通道二：粘的是 Supabase 验证链接 → 当前页内替用户跳去完成验证
+        var v = window.miaoFollowVerifyLink ? window.miaoFollowVerifyLink(val) : null;
+        if (v && v.navigate) {
+          if (pm) { pm.style.color = '#2E9E6B'; pm.textContent = '✅ 认出验证链接，正在完成登录…'; }
+          setTimeout(function () { window.location.href = v.navigate; }, 300);
+          return;
+        }
+        if (pm) pm.textContent = '❌ ' + ((r && r.err) || '没认出这条链接');
       });
     }
 

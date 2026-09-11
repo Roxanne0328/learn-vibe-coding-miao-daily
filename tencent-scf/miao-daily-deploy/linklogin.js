@@ -78,4 +78,28 @@
     }
     return buildSession(at, rt, expIn);
   };
+
+  // 进阶：识别邮件里的 Supabase 验证链接（…supabase.co/auth/v1/verify?token=…&type=…&redirect_to=…），
+  // 在当前页面里重新导航去完成验证——302 回跳的 #access_token 会直接出现在地址栏，
+  // 由本页 boot() 接住完成登录。全程在本标签页内，不给邮件 App/中间页丢凭证的机会。
+  window.miaoFollowVerifyLink = function (raw) {
+    var s = (raw || '').trim();
+    if (!s) return null;
+    var m = s.match(/https?:\/\/[^\s"'<>]*supabase\.co\/auth\/v1\/verify\?[^\s"'<>]*/i);
+    if (!m) return null;
+    var token = null, type = 'magiclink';
+    try {
+      var q = m[0].slice(m[0].indexOf('?') + 1);
+      var params = new URLSearchParams(q);
+      token = params.get('token');
+      if (params.get('type')) type = params.get('type');
+    } catch (e) { return null; }
+    if (!token) return null;
+    // 回跳地址固定用当前域名下的 index.html（该域名已在 Supabase 白名单里）
+    var target = m[0].slice(0, m[0].indexOf('/auth/')) +
+                 '/auth/v1/verify?token=' + encodeURIComponent(token) +
+                 '&type=' + encodeURIComponent(type) +
+                 '&redirect_to=' + encodeURIComponent(window.location.origin + '/index.html');
+    return { navigate: target };
+  };
 })();

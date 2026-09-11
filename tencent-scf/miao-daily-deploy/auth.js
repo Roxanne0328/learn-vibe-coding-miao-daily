@@ -69,17 +69,26 @@
   if (pasteBtn) {
     pasteBtn.addEventListener('click', function () {
       var pm = document.getElementById('pasteMsg');
-      var r = window.miaoLoginByLink
-        ? window.miaoLoginByLink(document.getElementById('pasteLink').value)
-        : { ok: false, err: '脚本没加载好，刷新一下再试' };
-      if (r.ok) {
+      var val = document.getElementById('pasteLink').value;
+
+      // 通道一：链接里直接带凭证 → 本地拆，立即登录
+      var r = window.miaoLoginByLink ? window.miaoLoginByLink(val) : null;
+      if (r && r.ok) {
         pm.textContent = '✅ 登录成功，正在进入～';
         pm.className = 'login-msg ok';
         setTimeout(function () { window.location.replace('index.html'); }, 400);
-      } else {
-        pm.textContent = '❌ ' + r.err;
-        pm.className = 'login-msg err';
+        return;
       }
+      // 通道二：粘的是 Supabase 验证链接 → 当前页内替用户跳去完成验证
+      var v = window.miaoFollowVerifyLink ? window.miaoFollowVerifyLink(val) : null;
+      if (v && v.navigate) {
+        pm.textContent = '✅ 认出验证链接，正在完成登录，请别离开页面…';
+        pm.className = 'login-msg ok';
+        setTimeout(function () { window.location.href = v.navigate; }, 300);
+        return;
+      }
+      pm.textContent = '❌ ' + ((r && r.err) || '没认出这条链接，请确认粘的是邮件里的完整链接');
+      pm.className = 'login-msg err';
     });
   }
 
