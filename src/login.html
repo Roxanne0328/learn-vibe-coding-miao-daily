@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>喵日常 · 登录</title>
-  <link rel="stylesheet" href="style.login.css?v=13">
+  <link rel="stylesheet" href="style.login.css?v=14">
 </head>
 <body>
 
@@ -76,17 +76,6 @@
         </div>
       </div>
 
-      <!-- 兜底通道：验证码收不到/极端情况时，把邮件里的链接复制粘贴进来也能登录 -->
-      <details class="login-paste">
-        <summary class="login-paste-summary">收不到验证码？试试用邮件里的链接登录 ›</summary>
-        <div class="login-paste-body">
-          <p class="login-paste-tip">📱 长按邮件里的按钮 →「拷贝链接地址」→ 把整条链接粘到下面（长长的 supabase.co 链接也认），一样能登录～</p>
-          <input type="text" id="pasteLink" class="login-input login-paste-input" placeholder="把邮件里的链接粘贴到这里" autocomplete="off" spellcheck="false">
-          <button type="button" class="login-submit login-paste-btn" id="pasteBtn">🔗 用链接登录</button>
-          <p class="login-msg" id="pasteMsg" role="alert"></p>
-        </div>
-      </details>
-
       <p class="login-hint">🐾 输入邮箱，验证码一键登录～</p>
     </section>
 
@@ -97,14 +86,12 @@
   </main>
 
   <!-- Supabase JS SDK (UMD 全局变量 supabase) -->
-  <script src="vendor/supabase-js.js?v=13"></script>
+  <script src="vendor/supabase-js.js?v=14"></script>
   <!-- 本地配置（含 anon key） -->
-  <script src="config.js?v=13"></script>
+  <script src="config.js?v=14"></script>
   <!-- 初始化客户端 -->
-  <script src="supabase.js?v=13"></script>
-  <!-- 兜底登录：从粘贴的链接里拆凭证 -->
-  <script src="linklogin.js?v=13"></script>
+  <script src="supabase.js?v=14"></script>
   <!-- 登录逻辑 -->
-  <script src="auth.js?v=13"></script>
+  <script src="auth.js?v=14"></script>
 </body>
 </html>

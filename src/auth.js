@@ -82,35 +82,6 @@
     } catch (e) {}
   })();
 
-  // 兜底通道：把邮件里的链接复制粘贴进来，直接拆凭证登录
-  // （验证码收不到的极端情况；手机上点链接可能被中间页/邮件 App 弄丢凭证，粘贴不受影响）
-  var pasteBtn = document.getElementById('pasteBtn');
-  if (pasteBtn) {
-    pasteBtn.addEventListener('click', function () {
-      var pm = document.getElementById('pasteMsg');
-      var val = document.getElementById('pasteLink').value;
-
-      // 通道一：链接里直接带凭证 → 本地拆，立即登录
-      var r = window.miaoLoginByLink ? window.miaoLoginByLink(val) : null;
-      if (r && r.ok) {
-        pm.textContent = '✅ 登录成功，正在进入～';
-        pm.className = 'login-msg ok';
-        setTimeout(function () { window.location.replace('index.html'); }, 400);
-        return;
-      }
-      // 通道二：粘的是 Supabase 验证链接 → 当前页内替用户跳去完成验证
-      var v = window.miaoFollowVerifyLink ? window.miaoFollowVerifyLink(val) : null;
-      if (v && v.navigate) {
-        pm.textContent = '✅ 认出验证链接，正在完成登录，请别离开页面…';
-        pm.className = 'login-msg ok';
-        setTimeout(function () { window.location.href = v.navigate; }, 300);
-        return;
-      }
-      pm.textContent = '❌ ' + ((r && r.err) || '没认出这条链接，请确认粘的是邮件里的完整链接');
-      pm.className = 'login-msg err';
-    });
-  }
-
   /* ===== 第一步：发送验证码 ===== */
 
   async function sendCode(email) {
