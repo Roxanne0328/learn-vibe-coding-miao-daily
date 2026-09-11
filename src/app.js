@@ -35,9 +35,23 @@
     if (window.supabaseClient && window.__miaoUserId) scheduleSync();
   }
 
-  /* ===== 云端同步（v1.1.0） ===== */
+  /* ===== 云端同步（v1.1.2：直连 REST，不走 SDK） ===== */
   var SYNC_KEYS = [KEYS.todos, KEYS.habits, KEYS.habitRecords, KEYS.mood];
   var syncTimer = null;
+
+  function apiBase() { return (window.SUPABASE_CONFIG || {}).url || ''; }
+  function anonKey() { return (window.SUPABASE_CONFIG || {}).anonKey || ''; }
+
+  function authHeaders(extra) {
+    var s = readSession();
+    var h = {
+      'apikey': anonKey(),
+      'Authorization': 'Bearer ' + ((s && s.access_token) || anonKey()),
+      'Content-Type': 'application/json'
+    };
+    if (extra) { Object.keys(extra).forEach(function (k) { h[k] = extra[k]; }); }
+    return h;
+  }
 
   function scheduleSync() {
     if (!window.__miaoUserId) return;
@@ -56,45 +70,54 @@
   }
 
   async function pushCloud() {
-    var c = window.supabaseClient;
     var uid = window.__miaoUserId;
-    if (!c || !uid) return;
-    var payload = buildPayload();
-    var { error } = await c.from('user_data').upsert({
-      user_id: uid,
-      payload: payload,
-      updated_at: new Date().toISOString()
-    });
-    if (error) console.warn('☁️ 云端同步失败：', error.message || error);
+    if (!apiBase() || !uid) return;
+    try {
+      var r = await fetch(apiBase() + '/rest/v1/user_data', {
+        method: 'POST',
+        headers: authHeaders({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+        body: JSON.stringify([{ user_id: uid, payload: buildPayload(), updated_at: new Date().toISOString() }])
+      });
+      if (!r.ok) console.warn('☁️ 云端同步失败：HTTP ' + r.status);
+    } catch (e) { console.warn('☁️ 云端同步失败：', e && e.message); }
   }
 
   async function pullCloud(uid) {
-    var c = window.supabaseClient;
-    if (!c || !uid) return null;
-    var { data, error } = await c.from('user_data').select('payload').eq('user_id', uid).maybeSingle();
-    if (error) { console.warn('☁️ 云端拉取失败：', error.message || error); return null; }
-    if (data && data.payload && typeof data.payload === 'object') {
-      Object.keys(data.payload).forEach(function (k) {
-        if (data.payload[k] != null) {
-          try { localStorage.setItem(k, JSON.stringify(data.payload[k])); } catch (e) {}
-        }
+    if (!apiBase() || !uid) return null;
+    try {
+      var r = await fetch(apiBase() + '/rest/v1/user_data?select=payload&user_id=eq.' + encodeURIComponent(uid) + '&limit=1', {
+        headers: authHeaders()
       });
-      return data.payload;
-    }
-    return null;
+      if (!r.ok) { console.warn('☁️ 云端拉取失败：HTTP ' + r.status); return null; }
+      var arr = await r.json();
+      var data = arr && arr[0];
+      if (data && data.payload && typeof data.payload === 'object') {
+        Object.keys(data.payload).forEach(function (k) {
+          if (data.payload[k] != null) {
+            try { localStorage.setItem(k, JSON.stringify(data.payload[k])); } catch (e) {}
+          }
+        });
+        return data.payload;
+      }
+      return null;
+    } catch (e) { console.warn('☁️ 云端拉取失败：', e && e.message); return null; }
   }
 
   async function startApp(uid) {
     window.__miaoUserId = uid;
-    var cloud = await pullCloud(uid);
+    // 先揭开遮罩、先把界面跑起来，云端同步放后台慢慢来（最多等 6 秒，卡也不影响使用）
+    hideGate();
+    init();
     var hadLocal = SYNC_KEYS.some(function (k) { return !!localStorage.getItem(k); });
+    var cloud = await Promise.race([
+      pullCloud(uid),
+      new Promise(function (r) { setTimeout(function () { r(null); }, 6000); })
+    ]);
     if (!cloud && hadLocal) {
       // 云端为空但本地有旧数据（v1.0 时代）→ 自动上传到云端
       await pushCloud();
       showToast('☁️ 已把本地旧数据同步到云端～');
     }
-    hideGate();
-    init();
   }
 
   function hideGate() {
@@ -102,47 +125,84 @@
     if (g) g.style.display = 'none';
   }
 
+  /* ===== 自有会话存储（v1.1.2：登录判断完全不依赖 SDK） ===== */
+  var SESSION_KEY = 'miao_daily_session';
+
+  // 项目 ID：优先从 anonKey（JWT）里解出来，最可靠；地址里是代理域名时正则取不到
+  function getProjectRef() {
+    var cfg = window.SUPABASE_CONFIG || {};
+    try {
+      var seg = (cfg.anonKey || '').split('.')[1] || '';
+      if (seg) {
+        var b = seg.replace(/-/g, '+').replace(/_/g, '/');
+        while (b.length % 4) b += '=';
+        var payload = JSON.parse(atob(b));
+        if (payload && payload.ref) return payload.ref;
+        var mi = ((payload && payload.iss) || '').match(/https:\/\/([^.]+)\.supabase\.co/);
+        if (mi && mi[1]) return mi[1];
+      }
+    } catch (e) {}
+    var m = (cfg.url || '').match(/https:\/\/([^.]+)\.supabase\.co/);
+    return m ? m[1] : '';
+  }
+
+  function readSession() {
+    try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); }
+    catch (e) { return null; }
+  }
+
+  function writeSession(session) {
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch (e) {}
+    // 同时按 SDK 的存储格式写一份（key: sb-<ref>-auth-token），
+    // 这样 SDK 一切正常时也能直接读到会话
+    var ref = getProjectRef();
+    if (ref) {
+      try { localStorage.setItem('sb-' + ref + '-auth-token', JSON.stringify(session)); } catch (e) {}
+    }
+  }
+
   // 自己用凭证完成登录：拿 access_token 调 /auth/v1/user 取用户信息，
-  // 然后把会话按 SDK 的存储格式写进 localStorage（key: sb-<ref>-auth-token），
-  // 这样刷新后 SDK 的 getSession() 能直接读到，完全不需要 SDK 参与。
+  // 然后把会话写进 localStorage。全程不经过 SDK，SDK 卡不卡都无所谓。
   function manualLogin(tokens, cb) {
     var cfg = window.SUPABASE_CONFIG || {};
-    var m = (cfg.url || '').match(/https:\/\/([^.]+)\.supabase\.co/) || [];
-    if (!m[1] || !cfg.anonKey || !tokens.refresh_token) { cb(null); return; }
-    var storageKey = 'sb-' + m[1] + '-auth-token';
+    if (!cfg.anonKey || !tokens.access_token) { cb(null, 'URL 里没拿到 access_token'); return; }
     var settled = false;
-    var timer = setTimeout(function () { finish(null); }, 10000);
-    function finish(raw) {
+    var timer = setTimeout(function () { finish(null, '请求超时（10秒没响应）'); }, 10000);
+    function finish(raw, err) {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      try {
-        var user = raw ? JSON.parse(raw) : null;
-        if (!user || !user.id) { cb(null); return; }
-        var now = Math.floor(Date.now() / 1000);
-        var session = {
-          provider_token: null,
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token,
-          token_type: 'bearer',
-          expires_in: tokens.expires_in,
-          expires_at: now + tokens.expires_in,
-          user: user
-        };
-        try { localStorage.setItem(storageKey, JSON.stringify(session)); } catch (e) {}
-        cb(user.id);
-      } catch (e) { cb(null); }
+      var user = null;
+      try { user = raw ? JSON.parse(raw) : null; } catch (e) { user = null; }
+      if (!user || !user.id) { cb(null, err || '取不到用户信息'); return; }
+      var now = Math.floor(Date.now() / 1000);
+      var exp = tokens.expires_in || 3600;
+      writeSession({
+        provider_token: null,
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token || '',
+        token_type: tokens.token_type || 'bearer',
+        expires_in: exp,
+        expires_at: now + exp,
+        user: user
+      });
+      cb(user.id, null);
     }
     try {
       var x = new XMLHttpRequest();
       x.open('GET', cfg.url + '/auth/v1/user', true);
       x.setRequestHeader('apikey', cfg.anonKey);
       x.setRequestHeader('Authorization', 'Bearer ' + tokens.access_token);
+      x.setRequestHeader('Accept', 'application/json');
       x.timeout = 9500;
-      x.onload = function () { finish(x.status >= 200 && x.status < 300 ? x.responseText : null); };
-      x.onerror = x.ontimeout = function () { finish(null); };
+      x.onload = function () {
+        if (x.status >= 200 && x.status < 300) finish(x.responseText, null);
+        else finish(null, 'HTTP ' + x.status + '：' + (x.responseText || '').slice(0, 100));
+      };
+      x.onerror = function () { finish(null, '网络请求失败（连不上代理通道）'); };
+      x.ontimeout = function () { finish(null, '网络请求超时'); };
       x.send();
-    } catch (e) { finish(null); }
+    } catch (e) { finish(null, '请求异常：' + (e && e.message)); }
   }
 
   function boot() {
@@ -185,15 +245,21 @@
       forwarded = true;
     }
 
-    // URL 里有凭证 → 完全绕开 SDK 自己完成登录（SDK 的 setSession 会等 initializePromise，
-    // 手机上初始化卡住时 setSession 永远不返回，之前就是卡死在这里）
+    // 1) URL 里有凭证 → 完全绕开 SDK 自己完成登录
+    //   （SDK 的 setSession 会等 initializePromise，手机上初始化卡住时永远不返回）
     if (manual) {
-      manualLogin(manual, function (userId) {
+      manualLogin(manual, function (userId, err) {
         if (userId) done(userId);
-        else fail('登录没完成（可能网络抖动），请刷新本页再试一次，或回登录页重发链接～');
+        else fail('登录没完成：' + (err || '未知原因') + '。请回登录页重发一次链接～');
       });
       return;
     }
+
+    // 2) 没有凭证 → 先看我们自己存的会话（完全不依赖 SDK，SDK 卡死也不影响）
+    var own = readSession();
+    if (own && own.user && own.user.id) { done(own.user.id); return; }
+
+    // 3) 自己也没有 → 最后才问 SDK，8 秒拿不到就回登录页
     var guard = setTimeout(goLogin, 8000);
 
     function done(uid) {
@@ -206,25 +272,17 @@
     }
 
     try {
-      // 先注册监听，再查会话，避免 getSession 太快返回导致漏掉 SIGNED_IN 事件
-      c.auth.onAuthStateChange(function (event, sess) {
-        if (sess && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
-          done(sess.user.id);
-        } else if (event === 'SIGNED_OUT' && !hasCallback) {
-          goLogin();
-        }
-      });
       c.auth.getSession().then(function (res) {
         var session = res && res.data && res.data.session;
-        if (session) { done(session.user.id); return; }
-        setTimeout(function () {
-          if (forwarded) return;
-          goLogin();
-        }, 8000);
+        if (session && session.user) {
+          writeSession(session);
+          done(session.user.id);
+          return;
+        }
+        goLogin();
       }).catch(function () { goLogin(); });
     } catch (e) {
-      if (hasCallback) fail('登录初始化失败，请回登录页重试～');
-      else goLogin();
+      goLogin();
     }
   }
 
