@@ -409,9 +409,48 @@ git tag -a v1.0.0 -m "v1.0.0 MVP 正式达成"
 | 版本 | 主要内容 |
 |------|---------|
 | v1.0.1 | GitHub push + Vercel 部署 + 分享链接 |
-| v1.1 | JSON 导入/导出（数据备份） |
+| **v1.1.0** | **Supabase + 邮箱魔法链接登录 + 跨设备同步（本次）** |
+| v1.2 | JSON 导入/导出（数据备份） |
 | v1.5 | 周/月视图、习惯连续天数、自定义编辑 |
-| v2.0 | Supabase + 登录 + 跨设备同步 |
+| v2.0 | 预留：更大的功能演进（如好友协作、分享等） |
+
+---
+
+## 11. v1.1.0 云端登录同步版开发计划
+
+### 目标
+把数据存储从 LocalStorage 迁移到 Supabase 云端，加邮箱魔法链接登录，实现跨设备同步。
+
+### 涉及文件
+- `src/login.html` / `src/style.login.css` — 登录页（静态原型已完成，本阶段加 JS）
+- `src/supabase.js` — Supabase 客户端初始化
+- `src/auth.js` — 发送魔法链接 / 回调登录 / 退出
+- `src/app.js` — 数据层从 LocalStorage 改为 Supabase（保留 LocalStorage 作离线缓存）
+- `src/config.js` — 本地注入 `SUPABASE_URL` + `ANON_KEY`（**已被 .gitignore，不进仓**）
+- `supabase/migrations/001_initial_schema.sql` — 4 张表 + RLS 行级安全（已写好）
+- `docs/PRD.v1.1.md` / `docs/UI_DESIGN_SPEC.v1.1.md` — 需求与视觉
+
+### 步骤（串行）
+1. **接 Supabase 客户端**：`supabase.js` 用 `@supabase/supabase-js`（CDN 引入）初始化 `createClient(URL, ANON_KEY)`；URL 和 key 从 `window.SUPABASE_CONFIG`（由本地 `config.js` 注入，绝不硬编码进仓库文件）。
+2. **登录页接逻辑**：`auth.js` 绑定「发送魔法链接」按钮 → `supabase.auth.signInWithOtp({ email, options: { emailRedirectTo } })` → 提示「去邮箱点链接」。
+3. **回调登录态**：监听 `supabase.auth.onAuthStateChange`，已登录则隐藏登录页、显示主页面；未登录显示登录页。
+4. **退出登录**：主页面右上角加「退出」按钮 → `supabase.auth.signOut()`。
+5. **数据层改写**：`app.js` 里读取/写入改为 Supabase（每条带 `user_id`）；保留 LocalStorage 作离线缓存。
+6. **一次性导入提示**：登录成功后若 LocalStorage 有旧数据 → 顶部黄色提示条「检测到你有 N 条本地数据，是否导入？」→ 点导入搬到云端 → 提示消失。
+7. **跨设备测试**：A 设备加待办 → B 设备登录查看是否同步；离线写排队、恢复网络后上传。
+
+### 完成标准
+- [ ] 第一次输邮箱 → 收邮件 → 点链接 → 登录成功
+- [ ] 退出按钮可点 → 回登录页
+- [ ] 再登录同一邮箱 → 数据都在
+- [ ] 加待办 → 刷新页面 → 还在
+- [ ] A 设备加待办 → B 设备能看到
+- [ ] v1.0 时代 LocalStorage 数据登录后一键迁移到云端
+
+### 自检要点
+- **密钥安全**：anon key 虽可公开，但仍走本地 `config.js` 注入，不硬编码进 `app.js`；`.env` 已被 gitignore。
+- **RLS 隔离**：确认每张表有 `user_id = auth.uid()` 策略，朋友之间数据不可见。
+- **Supabase 后台还需配置**：Enable Email Auth + 设置 Site URL / Redirect URLs（部署后填 Vercel 域名）。
 
 ---
 

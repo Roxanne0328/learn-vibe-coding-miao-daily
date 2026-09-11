@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>喵日常 · 登录</title>
+  <link rel="stylesheet" href="style.login.css">
+</head>
+<body>
+
+  <!-- 背景漂浮模糊圆（纯装饰） -->
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+
+  <main class="login-app">
+
+    <!-- 顶部插画 + 标题 -->
+    <header class="login-hero">
+      <div class="login-illustration">
+        <svg viewBox="0 0 120 120" width="92" height="92" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="60" cy="65" r="40" fill="#FAD4A3" />
+          <path d="M 28 42 Q 28 18 38 22 L 48 44 Z" fill="#FAD4A3" />
+          <path d="M 32 40 Q 33 26 38 28 L 46 42 Z" fill="#F4C2C2" />
+          <path d="M 92 42 Q 92 18 82 22 L 72 44 Z" fill="#FAD4A3" />
+          <path d="M 88 40 Q 87 26 82 28 L 74 42 Z" fill="#F4C2C2" />
+          <ellipse cx="30" cy="75" rx="8" ry="5" fill="#F4C2C2" opacity="0.6" />
+          <ellipse cx="90" cy="75" rx="8" ry="5" fill="#F4C2C2" opacity="0.6" />
+          <circle cx="44" cy="62" r="5" fill="#3D2F28" />
+          <circle cx="46" cy="60" r="2" fill="white" />
+          <circle cx="76" cy="62" r="5" fill="#3D2F28" />
+          <circle cx="78" cy="60" r="2" fill="white" />
+          <path d="M 56 75 Q 60 71 64 75 Q 60 79 56 75 Z" fill="#E8A672" />
+          <path d="M 60 79 Q 56 84 52 82" fill="none" stroke="#3D2F28" stroke-width="1.5" stroke-linecap="round" />
+          <path d="M 60 79 Q 64 84 68 82" fill="none" stroke="#3D2F28" stroke-width="1.5" stroke-linecap="round" />
+          <line x1="14" y1="72" x2="28" y2="74" stroke="#9E8E82" stroke-width="1" stroke-linecap="round" />
+          <line x1="14" y1="78" x2="28" y2="78" stroke="#9E8E82" stroke-width="1" stroke-linecap="round" />
+          <line x1="92" y1="74" x2="106" y2="72" stroke="#9E8E82" stroke-width="1" stroke-linecap="round" />
+          <line x1="92" y1="78" x2="106" y2="78" stroke="#9E8E82" stroke-width="1" stroke-linecap="round" />
+        </svg>
+      </div>
+      <h1 class="login-title">喵日常</h1>
+      <p class="login-welcome">一键开启你的小日常</p>
+    </header>
+
+    <!-- 登录卡片（静态原型，暂无 JS） -->
+    <section class="login-card">
+      <div class="login-card-header">
+        <h2 class="login-card-title">📮 邮箱魔法链接登录</h2>
+      </div>
+      <p class="login-desc">输入邮箱，我们会发一封「魔法链接」到你邮箱，点一下就能登录啦～</p>
+
+      <form class="login-form" onsubmit="return false;">
+        <label class="login-label" for="email">你的邮箱</label>
+        <input type="email" id="email" class="login-input" placeholder="mimi@example.com" required>
+        <button type="button" class="login-submit">✨ 发送魔法链接</button>
+      </form>
+
+      <p class="login-hint">🐾 输入邮箱，邮件里一键登录～</p>
+    </section>
+
+    <footer class="login-footer">
+      <p>Made with 💛 by 咪咪大人</p>
+    </footer>
+
+  </main>
+
+</body>
+</html>
