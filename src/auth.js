@@ -23,13 +23,42 @@
   }
 
   // 已有本地会话（之前登录过没退出）→ 直接进主页，不问 SDK（SDK 在手机上可能卡死）
+  // 带 ?force=1 时就算已登录也停在登录页（方便换号/重新登录）
+  var force = /[?&]force=1/.test(window.location.search);
   try {
     var own = JSON.parse(localStorage.getItem('miao_daily_session') || 'null');
-    if (own && own.user && own.user.id) {
+    if (!force && own && own.user && own.user.id) {
       window.location.replace('index.html');
       return;
     }
   } catch (e) {}
+
+  // 兜底：万一邮件链接是跳回登录页的（网址 # 后面带着凭证），这里也认，别把凭证弄丢
+  (function () {
+    try {
+      var hh = (window.location.hash || '').replace(/^#/, '');
+      if (!/access_token=/.test(hh)) return;
+      var p = new URLSearchParams(hh);
+      var at = p.get('access_token');
+      if (!at) return;
+      var seg = at.split('.')[1] || '';
+      var b = seg.replace(/-/g, '+').replace(/_/g, '/');
+      while (b.length % 4) b += '=';
+      var payload = JSON.parse(atob(b));
+      if (!payload || !payload.sub) return;
+      var now = Math.floor(Date.now() / 1000);
+      localStorage.setItem('miao_daily_session', JSON.stringify({
+        provider_token: null,
+        access_token: at,
+        refresh_token: p.get('refresh_token') || '',
+        token_type: 'bearer',
+        expires_in: parseInt(p.get('expires_in') || '3600', 10) || 3600,
+        expires_at: payload.exp || (now + 3600),
+        user: { id: payload.sub, email: payload.email || '', role: 'authenticated', user_metadata: {} }
+      }));
+      window.location.replace('index.html');
+    } catch (e) {}
+  })();
 
   form.addEventListener('submit', async function (e) {
     e.preventDefault();

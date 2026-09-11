@@ -257,7 +257,24 @@
     var own = readSession();
     if (own && own.user && own.user.id) { done(own.user.id); return; }
 
-    // 3) 自己也没有 → 最后才问 SDK，8 秒拿不到就回登录页
+    // 3) 邮件链接带错误信息回来（比如链接过期/被点过一次）→ 直接显示原因
+    if (/error_description=|error=/.test(u.hash) || /error_description=|error_code=/.test(u.search)) {
+      var ep = new URLSearchParams((u.hash + u.search).replace(/^[#?]/, ''));
+      fail('登录链接有问题：' + decodeURIComponent((ep.get('error_description') || ep.get('error') || ep.get('error_code') || '未知').replace(/\+/g, ' ')));
+      return;
+    }
+
+    // 4) 网址后面带了东西、但我们没认出凭证 → 不跳走，把「网址实况」写在屏幕上供排查
+    if (u.hash.length > 1 || u.search.length > 1) {
+      var diag = '路径=' + u.pathname +
+                 ' | ? 后面=' + (u.search ? u.search.slice(0, 70) : '空') +
+                 ' | # 后面长度=' + u.hash.length +
+                 ' | # 开头=' + (u.hash ? u.hash.slice(0, 24) : '空');
+      fail('网址里有东西但没认出登录凭证（请把这行截图给我）：' + diag);
+      return;
+    }
+
+    // 5) 干净地直接访问首页且没有会话 → 最后才问 SDK，8 秒拿不到就回登录页
     var guard = setTimeout(goLogin, 8000);
 
     function done(uid) {
@@ -1067,14 +1084,12 @@
     if (logoutBtn) {
       logoutBtn.addEventListener('click', function () {
         if (!window.confirm('确定要退出登录吗？本地数据仍会保留，下次用同一邮箱登录即可恢复～')) return;
-        var c = window.supabaseClient;
-        if (c) {
-          c.auth.signOut()
-            .then(function () { window.location.href = 'login.html'; })
-            .catch(function () { window.location.href = 'login.html'; });
-        } else {
-          window.location.href = 'login.html';
-        }
+        // 先清掉本地会话，立刻跳走，不 await SDK 的 signOut（它在某些环境会卡住永不返回）
+        try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+        var ref = getProjectRef();
+        if (ref) { try { localStorage.removeItem('sb-' + ref + '-auth-token'); } catch (e) {} }
+        try { window.supabaseClient && window.supabaseClient.auth.signOut(); } catch (e) {}
+        window.location.replace('login.html');
       });
     }
 

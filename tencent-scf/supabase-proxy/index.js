@@ -69,19 +69,18 @@ async function handle(event, context) {
     body = Buffer.from(body, 'base64').toString('utf8');
   }
 
-  // 透传客户端头，但清掉会造成冲突的头：
-  //  - accept-encoding 必须清掉并改成 identity（不压缩）：SCF 回传时会丢掉
-  //    content-encoding 标记，浏览器拿到一坨压缩乱码、JSON 解析必失败（v1.1.2 踩过的坑）
-  //  - content-length 要删掉：body 若被 base64 解码重写，长度会和原始头对不上
-  const headers = Object.assign({}, event.headers || {});
-  delete headers.host;
-  delete headers['x-forwarded-for'];
-  delete headers['x-forwarded-proto'];
-  delete headers['x-forwarded-host'];
-  delete headers['x-real-ip'];
-  delete headers['accept-encoding'];
-  delete headers['content-length'];
-  delete headers.connection;
+  // 请求头统一转小写再过滤：腾讯云传来的头可能是 'Accept-Encoding' 这种大写，
+  // 按小写 delete 是删不掉的（v1.1.2 第一次修复就栽在这里）
+  const raw = event.headers || {};
+  const headers = {};
+  const SKIP = ['host', 'x-forwarded-for', 'x-forwarded-proto', 'x-forwarded-host',
+    'x-real-ip', 'accept-encoding', 'content-length', 'connection'];
+  Object.keys(raw).forEach((k) => {
+    const lk = String(k).toLowerCase();
+    if (SKIP.indexOf(lk) !== -1) return;
+    headers[lk] = raw[k];
+  });
+  // 明确要求上游不要压缩：SCF 回传时会丢 content-encoding 标签，浏览器只能拿到乱码
   headers['accept-encoding'] = 'identity';
 
   // Supabase 要求请求带 apikey / Authorization；前端 config.js 的 anon key 会在请求头里透传过来
@@ -101,6 +100,9 @@ async function handle(event, context) {
       'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
       'Access-Control-Allow-Headers': '*',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
+      // 探针头：方便远程确认「新代码是否真的在线」以及上游有没有压缩
+      'X-Proxy-Version': '1.1.2-fix2',
+      'X-Proxy-Upstream-Encoding': String(upstream.headers['content-encoding'] || 'none'),
     };
     return {
       statusCode: upstream.statusCode,
