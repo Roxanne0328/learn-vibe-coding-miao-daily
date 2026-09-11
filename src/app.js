@@ -105,37 +105,68 @@
   function boot() {
     var c = window.supabaseClient;
     if (!c) { hideGate(); init(); return; } // 没接 Supabase 时退回纯本地模式
+
+    var u = window.location;
+    // 判断当前是不是「刚从魔法链接跳回来」：URL 里带登录凭证
+    var hasCallback = /access_token=/.test(u.hash) ||
+                      /[?&]code=/.test(u.search) ||
+                      /error_description=/.test(u.hash) ||
+                      /[?&]token=/.test(u.search);
+
     var forwarded = false;
     function goLogin() {
       if (forwarded) return;
       forwarded = true;
       window.location.href = 'login.html';
     }
-    // 兜底：即便网络卡住（如 supabase.co 访问超时），也不无限转圈，6 秒后跳登录页
-    var guard = setTimeout(goLogin, 6000);
-    // 双保险：9 秒后若仍在校验中，显示「去登录页」按钮，绝不死等
-    setTimeout(function () {
+    function fail(msg) {
+      // 带凭证时绝不自动跳走（跳走就永远登不进去了），显示原因 + 「去登录页」按钮
+      var t = document.getElementById('gateText');
+      if (t) t.textContent = msg;
       var fb = document.getElementById('gateFallback');
-      if (fb && !forwarded) fb.style.display = 'inline-block';
-    }, 9000);
+      if (fb) fb.style.display = 'inline-block';
+      forwarded = true;
+    }
+
+    var guard = setTimeout(function () {
+      if (hasCallback) fail('登录链接处理超时，请回登录页重新发送一次～');
+      else goLogin();
+    }, hasCallback ? 15000 : 8000);
+
+    function done(uid) {
+      if (forwarded) return;
+      forwarded = true;
+      clearTimeout(guard);
+      // 清掉 URL 里的凭证，避免刷新时重复处理
+      try { window.history.replaceState(null, '', u.pathname); } catch (e) {}
+      startApp(uid);
+    }
+
     try {
+      // 先注册监听，再查会话，避免 getSession 太快返回导致漏掉 SIGNED_IN 事件
+      c.auth.onAuthStateChange(function (event, sess) {
+        if (sess && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
+          done(sess.user.id);
+        } else if (event === 'SIGNED_OUT' && !hasCallback) {
+          goLogin();
+        }
+      });
       c.auth.getSession().then(function (res) {
-        clearTimeout(guard);
         var session = res && res.data && res.data.session;
-        if (session) { startApp(session.user.id); return; }
-        // 可能还在从邮件链接的 URL 里恢复登录态
-        c.auth.onAuthStateChange(function (event, sess) {
-          if (!forwarded && sess && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
-            forwarded = true; clearTimeout(guard);
-            startApp(sess.user.id);
-          } else if (event === 'SIGNED_OUT') {
-            window.location.href = 'login.html';
-          }
-        });
-        setTimeout(goLogin, 2500);
-      }).catch(function () { clearTimeout(guard); goLogin(); });
+        if (session) { done(session.user.id); return; }
+        // 还没拿到会话：URL 里有凭证就多等等（等 SDK 从链接里解析出来），否则 8 秒后去登录页
+        setTimeout(function () {
+          if (forwarded) return;
+          if (hasCallback) fail('这个登录链接已失效（可能被用过一次或已过期），请回登录页重新发送～');
+          else goLogin();
+        }, 8000);
+      }).catch(function () {
+        if (hasCallback) fail('网络异常，没能完成登录，请回登录页重试～');
+        else goLogin();
+      });
     } catch (e) {
-      clearTimeout(guard); goLogin();
+      if (hasCallback) fail('登录初始化失败，请回登录页重试～');
+      else goLogin();
     }
   }
 
