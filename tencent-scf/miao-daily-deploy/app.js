@@ -240,7 +240,27 @@
       if (t) t.textContent = msg;
       var fb = document.getElementById('gateFallback');
       if (fb) fb.style.display = 'inline-block';
+      // 同时亮出「粘贴链接登录」兜底通道：点链接进不去时，复制粘贴总能行
+      var gp = document.getElementById('gatePaste');
+      if (gp) gp.style.display = 'block';
       forwarded = true;
+    }
+
+    // 遮罩上的「用链接登录」按钮：粘贴邮件链接 → 拆凭证 → 直接进主界面
+    var gateLinkBtn = document.getElementById('gateLinkBtn');
+    if (gateLinkBtn) {
+      gateLinkBtn.addEventListener('click', function () {
+        var r = window.miaoLoginByLink
+          ? window.miaoLoginByLink(document.getElementById('gateLink').value)
+          : { ok: false, err: '脚本没加载好，刷新一下再试' };
+        var pm = document.getElementById('gatePasteMsg');
+        if (r.ok) {
+          if (pm) { pm.style.color = '#2E9E6B'; pm.textContent = '✅ 登录成功，正在进入～'; }
+          startApp(r.userId);
+        } else {
+          if (pm) pm.textContent = '❌ ' + r.err;
+        }
+      });
     }
 
     // 1) URL 里有凭证 → 完全绕开 SDK 自己完成登录
@@ -276,6 +296,15 @@
 
     // 5) 干净地直接访问首页且没有会话 → 最后才问 SDK，8 秒拿不到就回登录页
     var guard = setTimeout(goLogin, 8000);
+    // 2.5 秒还没结果就别让用户干等：亮出提示 + 粘贴链接兜底通道
+    // （手机上点邮件链接如果凭证被中间页弄丢，就会走到这里）
+    setTimeout(function () {
+      if (forwarded) return;
+      var t = document.getElementById('gateText');
+      if (t) t.textContent = '还没检测到登录状态…点邮件链接进不来的话，可以把链接粘贴到下面直接登录';
+      var gp = document.getElementById('gatePaste');
+      if (gp) gp.style.display = 'block';
+    }, 2500);
 
     function done(uid) {
       if (forwarded) return;

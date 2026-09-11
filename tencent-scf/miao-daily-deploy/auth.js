@@ -60,6 +60,26 @@
     } catch (e) {}
   })();
 
+  // 兜底通道：把邮件里的链接复制粘贴进来，直接拆凭证登录
+  // （手机上点链接可能被中间页/邮件 App 弄丢凭证，粘贴不受影响）
+  var pasteBtn = document.getElementById('pasteBtn');
+  if (pasteBtn) {
+    pasteBtn.addEventListener('click', function () {
+      var pm = document.getElementById('pasteMsg');
+      var r = window.miaoLoginByLink
+        ? window.miaoLoginByLink(document.getElementById('pasteLink').value)
+        : { ok: false, err: '脚本没加载好，刷新一下再试' };
+      if (r.ok) {
+        pm.textContent = '✅ 登录成功，正在进入～';
+        pm.className = 'login-msg ok';
+        setTimeout(function () { window.location.replace('index.html'); }, 400);
+      } else {
+        pm.textContent = '❌ ' + r.err;
+        pm.className = 'login-msg err';
+      }
+    });
+  }
+
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
     var email = (emailInput.value || '').trim();

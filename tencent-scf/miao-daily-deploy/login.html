@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>喵日常 · 登录</title>
-  <link rel="stylesheet" href="style.login.css?v=8">
+  <link rel="stylesheet" href="style.login.css?v=9">
 </head>
 <body>
 
@@ -58,6 +58,14 @@
 
       <p class="login-msg" id="loginMsg" role="alert"></p>
 
+      <!-- 兜底通道：手机点链接进不去时，把链接复制粘贴进来直接登录 -->
+      <div class="login-paste">
+        <p class="login-paste-tip">📱 手机点链接进不去？长按邮件里的按钮 →「拷贝链接地址」→ 粘到下面，一样能登录～</p>
+        <input type="text" id="pasteLink" class="login-input login-paste-input" placeholder="把邮件里的链接粘贴到这里" autocomplete="off" spellcheck="false">
+        <button type="button" class="login-submit login-paste-btn" id="pasteBtn">🔗 用链接登录</button>
+        <p class="login-msg" id="pasteMsg" role="alert"></p>
+      </div>
+
       <p class="login-hint">🐾 输入邮箱，邮件里一键登录～</p>
     </section>
 
@@ -68,12 +76,14 @@
   </main>
 
   <!-- Supabase JS SDK (UMD 全局变量 supabase) -->
-  <script src="vendor/supabase-js.js?v=8"></script>
+  <script src="vendor/supabase-js.js?v=9"></script>
   <!-- 本地配置（含 anon key，不进 GitHub） -->
-  <script src="config.js?v=8"></script>
+  <script src="config.js?v=9"></script>
   <!-- 初始化客户端 -->
-  <script src="supabase.js?v=8"></script>
+  <script src="supabase.js?v=9"></script>
+  <!-- 兜底登录：从粘贴的链接里拆凭证 -->
+  <script src="linklogin.js?v=9"></script>
   <!-- 登录逻辑 -->
-  <script src="auth.js?v=8"></script>
+  <script src="auth.js?v=9"></script>
 </body>
 </html>
