@@ -1,6 +1,6 @@
 // ============================================================
-//  喵日常 · 登录逻辑（6 位邮箱验证码）v1.1.3
-//  流程：输入邮箱 → 发验证码 → 输入 6 位数字 → 验证后直接拿会话进主页
+//  喵日常 · 登录逻辑（邮箱数字验证码）v1.1.3
+//  流程：输入邮箱 → 发验证码 → 输入数字 → 验证后直接拿会话进主页
 //  为什么改成验证码：点链接登录在手机上会被中间页/邮件 App 弄丢 # 后凭证，
 //  验证码完全不依赖跳转，手机电脑体验完全一致。
 //  请求都自己 fetch（绕开 SDK，SDK 在手机上会卡死）；
@@ -261,8 +261,8 @@
       setVerifyMsg('请先输入邮箱发送验证码～', 'err');
       return;
     }
-    if (!/^\d{6}$/.test(code)) {
-      setVerifyMsg('验证码是邮件里的 6 位数字哦～', 'err');
+    if (!/^\d{4,10}$/.test(code)) {
+      setVerifyMsg('验证码是邮件里的那串数字哦～', 'err');
       codeInput.focus();
       return;
     }
@@ -302,9 +302,9 @@
     codeInput.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); verifyCode(); }
     });
-    // 只留数字
+    // 只留数字（Supabase 生成的验证码长度不定，实测 8 位，放宽到 4~10 位通吃）
     codeInput.addEventListener('input', function () {
-      codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 6);
+      codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 10);
     });
   }
 })();
