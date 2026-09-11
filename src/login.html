@@ -42,18 +42,21 @@
       <p class="login-welcome">一键开启你的小日常</p>
     </header>
 
-    <!-- 登录卡片（静态原型，暂无 JS） -->
+    <!-- 登录卡片 -->
     <section class="login-card">
       <div class="login-card-header">
         <h2 class="login-card-title">📮 邮箱魔法链接登录</h2>
       </div>
       <p class="login-desc">输入邮箱，我们会发一封「魔法链接」到你邮箱，点一下就能登录啦～</p>
 
-      <form class="login-form" onsubmit="return false;">
+      <form class="login-form" id="loginForm" novalidate>
         <label class="login-label" for="email">你的邮箱</label>
         <input type="email" id="email" class="login-input" placeholder="mimi@example.com" required>
-        <button type="button" class="login-submit">✨ 发送魔法链接</button>
+        <p class="login-email-error" id="emailError">邮箱格式不对哦～</p>
+        <button type="submit" class="login-submit" id="sendMagicLink">✨ 发送魔法链接</button>
       </form>
+
+      <p class="login-msg" id="loginMsg" role="alert"></p>
 
       <p class="login-hint">🐾 输入邮箱，邮件里一键登录～</p>
     </section>
@@ -64,5 +67,13 @@
 
   </main>
 
+  <!-- Supabase JS SDK (UMD 全局变量 supabase) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- 本地配置（含 anon key，不进 GitHub） -->
+  <script src="config.js"></script>
+  <!-- 初始化客户端 -->
+  <script src="supabase.js"></script>
+  <!-- 登录逻辑 -->
+  <script src="auth.js"></script>
 </body>
 </html>

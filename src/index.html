@@ -113,10 +113,11 @@
 
     <!-- 顶部欢迎区 -->
     <header class="hero" data-page-node-id="JqshfO5Go50fnoWrTfqAWD">
-      <div class="hero-bar" data-page-node-id="kEuRfDhPgKyNm7jVT2iWtG">
-        <span class="hero-spacer"></span>
-        <button type="button" id="openHistory" class="hero-icon-btn" data-page-node-id="HqLrkprU5kqGTBnMxM6PqH" title="看历史">📅 看历史</button>
-      </div>
+        <div class="hero-bar" data-page-node-id="kEuRfDhPgKyNm7jVT2iWtG">
+          <button type="button" id="logoutBtn" class="hero-icon-btn" title="退出登录">退出</button>
+          <span class="hero-spacer"></span>
+          <button type="button" id="openHistory" class="hero-icon-btn" data-page-node-id="HqLrkprU5kqGTBnMxM6PqH" title="看历史">📅 看历史</button>
+        </div>
       <div class="hero-greeting" data-page-node-id="uAONtj42PXphybQwDbvfDi">
         <div class="hero-illustration" data-page-node-id="dP6qL1FCJpD07voFj6GGRz">
           <svg viewBox="0 0 120 120" width="90" height="90" xmlns="http://www.w3.org/2000/svg" data-page-node-id="pqmjMVwD8iOCHUqDZAWM5h">
@@ -217,6 +218,11 @@
   </main>
   </div>
   <!-- /#mainView -->
+
+  <!-- Supabase 云端同步（v1.1.0） -->
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
 
   <script src="app.js"></script>
 </body>

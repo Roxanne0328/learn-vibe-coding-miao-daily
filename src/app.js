@@ -32,6 +32,90 @@
   function save(key, data) {
     try { localStorage.setItem(key, JSON.stringify(data)); }
     catch (e) { console.warn('保存失败：', e); }
+    if (window.supabaseClient && window.__miaoUserId) scheduleSync();
+  }
+
+  /* ===== 云端同步（v1.1.0） ===== */
+  var SYNC_KEYS = [KEYS.todos, KEYS.habits, KEYS.habitRecords, KEYS.mood];
+  var syncTimer = null;
+
+  function scheduleSync() {
+    if (!window.__miaoUserId) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(function () { pushCloud(); }, 800);
+  }
+
+  function buildPayload() {
+    var payload = {};
+    SYNC_KEYS.forEach(function (k) {
+      var raw = localStorage.getItem(k);
+      try { payload[k] = raw ? JSON.parse(raw) : null; }
+      catch (e) { payload[k] = null; }
+    });
+    return payload;
+  }
+
+  async function pushCloud() {
+    var c = window.supabaseClient;
+    var uid = window.__miaoUserId;
+    if (!c || !uid) return;
+    var payload = buildPayload();
+    var { error } = await c.from('user_data').upsert({
+      user_id: uid,
+      payload: payload,
+      updated_at: new Date().toISOString()
+    });
+    if (error) console.warn('☁️ 云端同步失败：', error.message || error);
+  }
+
+  async function pullCloud(uid) {
+    var c = window.supabaseClient;
+    if (!c || !uid) return null;
+    var { data, error } = await c.from('user_data').select('payload').eq('user_id', uid).maybeSingle();
+    if (error) { console.warn('☁️ 云端拉取失败：', error.message || error); return null; }
+    if (data && data.payload && typeof data.payload === 'object') {
+      Object.keys(data.payload).forEach(function (k) {
+        if (data.payload[k] != null) {
+          try { localStorage.setItem(k, JSON.stringify(data.payload[k])); } catch (e) {}
+        }
+      });
+      return data.payload;
+    }
+    return null;
+  }
+
+  async function startApp(uid) {
+    window.__miaoUserId = uid;
+    var cloud = await pullCloud(uid);
+    var hadLocal = SYNC_KEYS.some(function (k) { return !!localStorage.getItem(k); });
+    if (!cloud && hadLocal) {
+      // 云端为空但本地有旧数据（v1.0 时代）→ 自动上传到云端
+      await pushCloud();
+      showToast('☁️ 已把本地旧数据同步到云端～');
+    }
+    init();
+  }
+
+  function boot() {
+    var c = window.supabaseClient;
+    if (!c) { init(); return; } // 没接 Supabase 时退回纯本地模式
+    c.auth.getSession().then(function (res) {
+      var session = res && res.data && res.data.session;
+      if (session) { startApp(session.user.id); return; }
+      // 可能还在从邮件链接的 URL 里恢复登录态
+      var handled = false;
+      c.auth.onAuthStateChange(function (event, sess) {
+        if (!handled && sess && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+          handled = true;
+          startApp(sess.user.id);
+        } else if (event === 'SIGNED_OUT') {
+          window.location.href = 'login.html';
+        }
+      });
+      setTimeout(function () {
+        if (!handled) window.location.href = 'login.html';
+      }, 2500);
+    });
   }
 
   function load(key, defaultValue) {
@@ -771,8 +855,8 @@
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', boot);
   } else {
-    init();
+    boot();
   }
 })();

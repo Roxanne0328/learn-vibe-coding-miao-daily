@@ -427,7 +427,7 @@ git tag -a v1.0.0 -m "v1.0.0 MVP 正式达成"
 - `src/auth.js` — 发送魔法链接 / 回调登录 / 退出
 - `src/app.js` — 数据层从 LocalStorage 改为 Supabase（保留 LocalStorage 作离线缓存）
 - `src/config.js` — 本地注入 `SUPABASE_URL` + `ANON_KEY`（**已被 .gitignore，不进仓**）
-- `supabase/migrations/001_initial_schema.sql` — 4 张表 + RLS 行级安全（已写好）
+- `supabase/migrations/001_initial_schema.sql` — 单表 `user_data` 同步模型（每位用户一行，payload 存完整状态 JSON）+ RLS 行级安全（已写好）
 - `docs/PRD.v1.1.md` / `docs/UI_DESIGN_SPEC.v1.1.md` — 需求与视觉
 
 ### 步骤（串行）

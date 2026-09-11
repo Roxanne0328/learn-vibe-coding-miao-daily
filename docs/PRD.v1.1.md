@@ -70,7 +70,7 @@
 | 前端 | HTML/CSS/JS（和 v1.0 一样）| 单文件，不引入框架 |
 | BaaS | Supabase | 免费版 |
 | Auth | Supabase Auth | 邮箱魔法链接 |
-| 数据库 | PostgreSQL（Supabase 自带）| 4 张表 |
+| 数据库 | PostgreSQL（Supabase 自带）| 单表 `user_data` 同步模型（每位用户一行，payload 存完整状态 JSON）+ RLS 行级安全 |
 | 部署 | Vercel（前端）+ Supabase Cloud（后端）| 都是免费 |
 
 ---
