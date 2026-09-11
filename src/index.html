@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="0hUzkQPqBnbMQkDmzUQTJ1">
+<head data-page-node-id="AbDeqYUF3hGYzBZasYVCnE">
+  <meta charset="UTF-8" data-page-node-id="VDTXvDsajbSrdW9EKrzQRH">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="9ztI4ihbrgdnXOVIuGWUvV">
+  <title>喵日常 · Mia's Daily Planner</title>
+  <link rel="stylesheet" href="style.css" data-page-node-id="AQRxzkBeY0uNC6hGCyT67G">
+</head>
+<body data-page-node-id="uLmT9NtUuURsz8WiWtZRuM">
+
+  <!-- 历史视图（默认隐藏） -->
+  <div id="historyView" style="display:none;" data-page-node-id="ZWBj9NCVqzqDeZQ7sXvovQ">
+    <main class="app" data-page-node-id="bOfE5jzQql9rXNvgM77bC2">
+
+      <header class="hero" data-page-node-id="yDBu2PvyZTLCusN5tHuKPB">
+        <div class="hero-bar" data-page-node-id="mTSXrOWpQFYUyVLNmHWtiK">
+          <button type="button" id="backToToday" class="hero-icon-btn" data-page-node-id="A8vCddFOvUSPIz9fFhGUnn" title="回到今天">← 回到今天</button>
+          <span class="hero-spacer"></span>
+        </div>
+        <h1 class="hero-title" data-page-node-id="hMgzp5xXxX6qJuhN2tZEBN" id="viewingDate">昨天 · 9月10日 · 周四</h1>
+        <p class="hero-welcome" data-page-node-id="yLcyKU0ZQDkqUFGVfTVnxo">📖 历史快照 · 只读</p>
+      </header>
+
+      <section class="card calendar-card" id="calendarCard" data-page-node-id="LUIpX8pYTOvwbVhmWXtTMB">
+        <div class="card-header calendar-header" id="calendarHeader" data-page-node-id="IEGSYqxQGYdwz2NK7bzLx6">
+          <h2 class="card-title" data-page-node-id="pWPBJGYAjXLfwF2tVjDQ4V">
+            <span data-page-node-id="qx5alTr9qW4QkZ8rxLqNN6">📅</span> 选择日期
+          </h2>
+          <span class="badge" id="calendarToggle" data-page-node-id="W3KPcj4pTpgD6nJSkRnMzJ">收起 ▲</span>
+        </div>
+        <div class="calendar-body" id="calendarBody" data-page-node-id="Kxe3GhMUGSL3DPDuxJkeAc">
+          <div class="cal-toolbar">
+            <button type="button" id="prevMonth" class="cal-nav-btn" data-page-node-id="ByzPjQbs2nvD9wmwP9K9JC">‹</button>
+            <span class="cal-month-label" id="monthLabel" data-page-node-id="nMdMqx8W2ZKX6nJBgyWDPQ">2026年9月</span>
+            <button type="button" id="nextMonth" class="cal-nav-btn" data-page-node-id="hkYzKCHbWDJghN7HjfpGrK">›</button>
+          </div>
+          <div class="calendar-grid" id="calendarGrid" data-page-node-id="Ux4NcG6nZbzN6ytVrp6NQM"></div>
+        </div>
+      </section>
+
+      <!-- 历史快照：复用 mainView 的三个卡片（但只读） -->
+      <section class="card todo-card" data-page-node-id="HfesPiKUK9vUJo3ySb7DKj">
+        <div class="card-header" data-page-node-id="aYIhxfOvJM4RgX8W2XKxA1">
+          <h2 class="card-title" data-page-node-id="JwTQTiODDrPm6HfX4jqE1l">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#5A4A42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="DUlW2Cy7DQbZ8qFZcJLN5N"><rect x="3" y="5" width="18" height="14" rx="2" data-page-node-id="l9zV8qY8hMr6qkL2xXpz9A"/><path d="M9 12l2 2 4-4" data-page-node-id="qDfY6bWZbX8QrJy4xGnVcK"/></svg>
+            今日待办
+          </h2>
+          <span class="badge" id="todoCountSnap" data-page-node-id="ML8HZTK6NNRJgTGFmQjzDp">0</span>
+        </div>
+        <ul class="todo-list" id="todoListSnap" data-page-node-id="VuYOxPRE0P5g9vgwVYGRpv_snap"></ul>
+        <form class="todo-form" id="todoFormSnap" data-page-node-id="nPtD4F35xMEcwFgiK5CtyK_snap" style="display:none;">
+          <input type="text" placeholder="+ 加一件想做的事" class="todo-input" id="todoInputSnap" data-page-node-id="Jqey1ELoFIL7XCWovFjLzI_snap">
+        </form>
+      </section>
+
+      <section class="card habit-card" data-page-node-id="O2SCvhj0yVTO8KQPlNJycY">
+        <div class="card-header" data-page-node-id="URDI4WuOwfVRg8DOdPbK8o">
+          <h2 class="card-title" data-page-node-id="pWxwhfTuTLFwD6hLfWL43L">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#5A4A42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="nfBy4pJtLxsk5CrM4qVk5P"><path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z" data-page-node-id="OIOpK0h4Xid9f5oVAq5R3G"/></svg>
+            习惯打卡
+          </h2>
+          <span class="badge" id="habitCountSnap" data-page-node-id="iwnLt7nsgc6KBFgtHCmkc4_snap">0/0</span>
+        </div>
+        <div class="habit-grid" id="habitGridSnap" data-page-node-id="rTaPmRYW3ykGLGhMux61TM_snap"></div>
+        <form class="habit-form" id="habitFormSnap" data-page-node-id="MSoLWa3qaKSzIOpdIyrOvN_snap" style="display:none;">
+          <div class="emoji-picker" id="emojiPickerSnap" data-page-node-id="JR4LdT2kjIZbp4pUcvwGuQ_snap">
+            <button type="button" class="emoji-option emoji-none is-selected" data-emoji="__none__" title="不选（自动给 ⭐）">/</button>
+            <button type="button" class="emoji-option" data-emoji="💧" title="喝水">💧</button>
+            <button type="button" class="emoji-option" data-emoji="📖" title="阅读">📖</button>
+            <button type="button" class="emoji-option" data-emoji="🛌" title="早睡">🛌</button>
+            <button type="button" class="emoji-option" data-emoji="🏃" title="运动">🏃</button>
+            <button type="button" class="emoji-option" data-emoji="🍎" title="健康饮食">🍎</button>
+            <button type="button" class="emoji-option" data-emoji="💊" title="吃药">💊</button>
+            <button type="button" class="emoji-option" data-emoji="🧘" title="冥想">🧘</button>
+            <button type="button" class="emoji-option" data-emoji="🎨" title="画画">🎨</button>
+            <button type="button" class="emoji-option" data-emoji="✍️" title="写作">✍️</button>
+            <button type="button" class="emoji-option" data-emoji="☕" title="喝咖啡">☕</button>
+            <button type="button" class="emoji-option" data-emoji="🎵" title="听音乐">🎵</button>
+            <button type="button" class="emoji-option" data-emoji="🥗" title="健康餐">🥗</button>
+            <button type="button" class="emoji-option" data-emoji="🧹" title="打扫">🧹</button>
+            <button type="button" class="emoji-option" data-emoji="🐱" title="撸猫">🐱</button>
+            <button type="button" class="emoji-option" data-emoji="💪" title="力量训练">💪</button>
+          </div>
+          <input type="text" placeholder="+ 养成一个新习惯" class="habit-input" id="habitInputSnap" data-page-node-id="Kbd9FyVIzfkamGmFo7j2Pe_snap">
+        </form>
+      </section>
+
+      <section class="card mood-card" data-page-node-id="ltEax8awVvc2u8ZHfX7siJ">
+        <div class="card-header" data-page-node-id="kQYBYfHXCm1GNlNS2L4jJz">
+          <h2 class="card-title" data-page-node-id="sIyGlZJxszhUfRydYDtbu3">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#5A4A42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="TWfAIb8YxbKolPfVJQtbq2"><path d="M20.8 4.6c-1.6-1.5-4-1.5-5.6 0L12 7.7 8.8 4.6C7.2 3.1 4.8 3.1 3.2 4.6s-1.5 4.1 0 5.6l8.8 8.8 8.8-8.8c1.5-1.5 1.5-4.1 0-5.6z" data-page-node-id="htEday1X3iIVWdAsr5Cq3j"/></svg>
+            今日心情
+          </h2>
+        </div>
+        <div class="mood-content" id="moodContentSnap">
+          <div class="mood-options" id="moodOptionsSnap" data-page-node-id="T9CJ5pOfk750Xk9eXWm7SB_snap"></div>
+          <textarea class="mood-input" placeholder="今天发生了什么？写一句话吧~" rows="3" id="moodNoteSnap"></textarea>
+        </div>
+        <div class="mood-empty" id="moodEmptySnap" style="display:none;">这天没有记录心情哦～</div>
+      </section>
+
+      <footer class="footer" data-page-node-id="CDWBjmY5hqCyvXGGWVoKr0">
+        <p data-page-node-id="RIxm9TJRI5V9jA2KQGhQ6L">Made with 💛 by 咪咪大人</p>
+        <p class="footer-version" data-page-node-id="wnHhyjF0KCDZ96AF1SXgqj">v0.6 · 历史快照</p>
+      </footer>
+
+    </main>
+  </div>
+
+  <!-- 主视图 -->
+  <div id="mainView" data-page-node-id="uLmT9NtUuURsz8WiWtZRuM_main">
+  <main class="app" data-page-node-id="UiYoORNz2OXyoH6tB0Dngl">
+
+    <!-- 顶部欢迎区 -->
+    <header class="hero" data-page-node-id="JqshfO5Go50fnoWrTfqAWD">
+      <div class="hero-bar" data-page-node-id="kEuRfDhPgKyNm7jVT2iWtG">
+        <span class="hero-spacer"></span>
+        <button type="button" id="openHistory" class="hero-icon-btn" data-page-node-id="HqLrkprU5kqGTBnMxM6PqH" title="看历史">📅 看历史</button>
+      </div>
+      <div class="hero-greeting" data-page-node-id="uAONtj42PXphybQwDbvfDi">
+        <div class="hero-illustration" data-page-node-id="dP6qL1FCJpD07voFj6GGRz">
+          <svg viewBox="0 0 120 120" width="90" height="90" xmlns="http://www.w3.org/2000/svg" data-page-node-id="pqmjMVwD8iOCHUqDZAWM5h">
+            <circle cx="60" cy="65" r="40" fill="#FAD4A3" data-page-node-id="Fn4ZCGCZqMUzhpNCSV3MNF"/>
+            <path d="M 28 42 Q 28 18 38 22 L 48 44 Z" fill="#FAD4A3" data-page-node-id="q15xlf0x0PD4BYgAmS9Vi5"/>
+            <path d="M 32 40 Q 33 26 38 28 L 46 42 Z" fill="#F4C2C2" data-page-node-id="zAeMR8tYLvpF794R5VcprH"/>
+            <path d="M 92 42 Q 92 18 82 22 L 72 44 Z" fill="#FAD4A3" data-page-node-id="Cx6SIE9U5AhEZNw5wvF3wy"/>
+            <path d="M 88 40 Q 87 26 82 28 L 74 42 Z" fill="#F4C2C2" data-page-node-id="PdLv27Da7YxQtCqpfmB0Qp"/>
+            <ellipse cx="30" cy="75" rx="8" ry="5" fill="#F4C2C2" opacity="0.6" data-page-node-id="B4Qc05VaGaIk6Ik54NhE6F"/>
+            <ellipse cx="90" cy="75" rx="8" ry="5" fill="#F4C2C2" opacity="0.6" data-page-node-id="LlcKBRbKoleJNBhmk99qF4"/>
+            <circle cx="44" cy="62" r="5" fill="#3D2F28" data-page-node-id="yZKxSI2Cw1csm0Yd9RKvPU"/>
+            <circle cx="46" cy="60" r="2" fill="white" data-page-node-id="nLK1qlmZl853yZJDBRjgB5"/>
+            <circle cx="76" cy="62" r="5" fill="#3D2F28" data-page-node-id="9nZJXHhRd3z6Fl6ScFE52I"/>
+            <circle cx="78" cy="60" r="2" fill="white" data-page-node-id="qwnknqfGo0R1lW4jr5NAtA"/>
+            <path d="M 56 75 Q 60 71 64 75 Q 60 79 56 75 Z" fill="#E8A672" data-page-node-id="xLGDMdEJdidDdL0oaK7Mka"/>
+            <path d="M 60 79 Q 56 84 52 82" fill="none" stroke="#3D2F28" stroke-width="1.5" stroke-linecap="round" data-page-node-id="BDKALpOIvK4DfuB5gFlAZb"/>
+            <path d="M 60 79 Q 64 84 68 82" fill="none" stroke="#3D2F28" stroke-width="1.5" stroke-linecap="round" data-page-node-id="Y2uxRI30BVCWFUnMjub9vb"/>
+            <line x1="14" y1="72" x2="28" y2="74" stroke="#9E8E82" stroke-width="1" stroke-linecap="round" data-page-node-id="aoT871Mwj1s56AfAELvXUf"/>
+            <line x1="14" y1="78" x2="28" y2="78" stroke="#9E8E82" stroke-width="1" stroke-linecap="round" data-page-node-id="OBGygq8GB36CBhzcoSCTf4"/>
+            <line x1="92" y1="74" x2="106" y2="72" stroke="#9E8E82" stroke-width="1" stroke-linecap="round" data-page-node-id="k6oCGpWoVe3BaKofd21FrE"/>
+            <line x1="92" y1="78" x2="106" y2="78" stroke="#9E8E82" stroke-width="1" stroke-linecap="round" data-page-node-id="rVY4oXmomdkwfEYA2eZkSA"/>
+          </svg>
+        </div>
+        <div class="hero-text" data-page-node-id="yTtzrt0jdrUV9Sxct3ig49">
+          <h1 class="hero-title" data-page-node-id="Y3flt38u4TvCd2QsAJHe73">喵日常</h1>
+          <p class="hero-date" id="todayDate" data-page-node-id="cAovJGlgLWtWcaCMxGll7p">今天</p>
+        </div>
+      </div>
+      <p class="hero-welcome" data-page-node-id="ROzd3KDl3XWUcRfI7wvYqL">今天也要好好生活呀～</p>
+    </header>
+
+    <!-- 模块 1：今日待办 -->
+    <section class="card todo-card" data-page-node-id="DmF4zVfHA08a7kvpjK1EQE">
+      <div class="card-header" data-page-node-id="B8iE8TVq3Hg2sAIBtpSVBg">
+        <h2 class="card-title" data-page-node-id="1LaApX1JvFfFO7zUyzKNJg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#5A4A42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="t8ohVMsnaxc7ZdPCVQXoYC"><rect x="3" y="5" width="18" height="14" rx="2" data-page-node-id="j7vwSmtioWuyPTyMB6cDpG"/><path d="M9 12l2 2 4-4" data-page-node-id="AgXGOdXzLLY4Asz5gbjRhi"/></svg>
+          今日待办
+        </h2>
+        <span class="badge" id="todoCount" data-page-node-id="ML8HZTK6NNRJgTGFmQjzDp">0</span>
+      </div>
+      <ul class="todo-list" id="todoList" data-page-node-id="VuYOxPRE0P5g9vgwVYGRpv"></ul>
+      <form class="todo-form" id="todoForm" data-page-node-id="nPtD4F35xMEcwFgiK5CtyK">
+        <input type="text" placeholder="+ 加一件想做的事" class="todo-input" id="todoInput" data-page-node-id="Jqey1ELoFIL7XCWovFjLzI">
+      </form>
+    </section>
+
+    <!-- 模块 2：习惯打卡 -->
+    <section class="card habit-card" data-page-node-id="S4ojkY39AmOB3Zo8FG8zOK">
+      <div class="card-header" data-page-node-id="7j8ch74qCIxvHq2EHM39iw">
+        <h2 class="card-title" data-page-node-id="YDqegbIOVu15vcHwoDn6L6">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#5A4A42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="sT04uA42ilUOXJKKkioQGT"><path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z" data-page-node-id="OIOpK0h4Xid9f5oVAq5R3G"/></svg>
+          习惯打卡
+        </h2>
+        <span class="badge" id="habitCount" data-page-node-id="iwnLt7nsgc6KBFgtHCmkc4">0/0</span>
+      </div>
+      <div class="habit-grid" id="habitGrid" data-page-node-id="rTaPmRYW3ykGLGhMux61TM"></div>
+      <form class="habit-form" id="habitForm" data-page-node-id="MSoLWa3qaKSzIOpdIyrOvN">
+        <div class="emoji-picker" id="emojiPicker" data-page-node-id="JR4LdT2kjIZbp4pUcvwGuQ">
+          <button type="button" class="emoji-option emoji-none is-selected" data-emoji="__none__" title="不选（自动给 ⭐）">/</button>
+          <button type="button" class="emoji-option" data-emoji="💧" title="喝水">💧</button>
+          <button type="button" class="emoji-option" data-emoji="📖" title="阅读">📖</button>
+          <button type="button" class="emoji-option" data-emoji="🛌" title="早睡">🛌</button>
+          <button type="button" class="emoji-option" data-emoji="🏃" title="运动">🏃</button>
+          <button type="button" class="emoji-option" data-emoji="🍎" title="健康饮食">🍎</button>
+          <button type="button" class="emoji-option" data-emoji="💊" title="吃药">💊</button>
+          <button type="button" class="emoji-option" data-emoji="🧘" title="冥想">🧘</button>
+          <button type="button" class="emoji-option" data-emoji="🎨" title="画画">🎨</button>
+          <button type="button" class="emoji-option" data-emoji="✍️" title="写作">✍️</button>
+          <button type="button" class="emoji-option" data-emoji="☕" title="喝咖啡">☕</button>
+          <button type="button" class="emoji-option" data-emoji="🎵" title="听音乐">🎵</button>
+          <button type="button" class="emoji-option" data-emoji="🥗" title="健康餐">🥗</button>
+          <button type="button" class="emoji-option" data-emoji="🧹" title="打扫">🧹</button>
+          <button type="button" class="emoji-option" data-emoji="🐱" title="撸猫">🐱</button>
+          <button type="button" class="emoji-option" data-emoji="💪" title="力量训练">💪</button>
+        </div>
+        <input type="text" placeholder="+ 养成一个新习惯" class="habit-input" id="habitInput" data-page-node-id="Kbd9FyVIzfkamGmFo7j2Pe">
+      </form>
+    </section>
+
+    <!-- 模块 3：心情日记 -->
+    <section class="card mood-card" data-page-node-id="HZ43uqf9PLRG6egH2RPPtj">
+      <div class="card-header" data-page-node-id="hEOMd0XYVXzLqXM533BQqP">
+        <h2 class="card-title" data-page-node-id="CGYVMo4M1nA1kkK8npZ4Nd">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#5A4A42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="TWfAIb8YxbKolPfVJQtbq2"><path d="M20.8 4.6c-1.6-1.5-4-1.5-5.6 0L12 7.7 8.8 4.6C7.2 3.1 4.8 3.1 3.2 4.6s-1.5 4.1 0 5.6l8.8 8.8 8.8-8.8c1.5-1.5 1.5-4.1 0-5.6z" data-page-node-id="htEday1X3iIVWdAsr5Cq3j"/></svg>
+          今日心情
+        </h2>
+      </div>
+      <div class="mood-options" id="moodOptions" data-page-node-id="T9CJ5pOfk750Xk9eXWm7SB"></div>
+      <textarea class="mood-input" placeholder="今天发生了什么？写一句话吧~" rows="3" id="moodNote"></textarea>
+    </section>
+
+    <!-- 底部 -->
+    <footer class="footer" data-page-node-id="CDWBjmY5hqCyvXGGWVoKr0">
+      <p data-page-node-id="RIxm9TJRI5V9jA2KQGhQ6L">Made with 💛 by 咪咪大人</p>
+      <p class="footer-version" data-page-node-id="wnHhyjF0KCDZ96AF1SXgqj">v0.5 · 添加习惯时可选 emoji 图标</p>
+    </footer>
+
+  </main>
+  </div>
+  <!-- /#mainView -->
+
+  <script src="app.js"></script>
+</body>
+</html>

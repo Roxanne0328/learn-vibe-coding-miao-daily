@@ -27,3 +27,6 @@ npm-debug.log*
 # 临时输出
 .cache/
 tmp/
+
+# WorkBuddy workspace memory（用户私有，不应该进代码仓）
+.workbuddy/
