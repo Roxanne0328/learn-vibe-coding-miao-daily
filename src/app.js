@@ -107,8 +107,19 @@
     if (!c) { hideGate(); init(); return; } // 没接 Supabase 时退回纯本地模式
 
     var u = window.location;
+    // 兜底用：SDK 万一没自动解析 URL 里的凭证，我们自己取出来手动登录
+    var manual = null;
+    try {
+      var hh = (u.hash || '').replace(/^#/, '');
+      if (/access_token=/.test(hh)) {
+        var p = new URLSearchParams(hh);
+        var at = p.get('access_token');
+        if (at) manual = { access_token: at, refresh_token: p.get('refresh_token') || '' };
+      }
+    } catch (e) {}
     // 判断当前是不是「刚从魔法链接跳回来」：URL 里带登录凭证
-    var hasCallback = /access_token=/.test(u.hash) ||
+    var hasCallback = !!manual ||
+                      /access_token=/.test(u.hash) ||
                       /[?&]code=/.test(u.search) ||
                       /error_description=/.test(u.hash) ||
                       /[?&]token=/.test(u.search);
@@ -151,18 +162,24 @@
           goLogin();
         }
       });
-      c.auth.getSession().then(function (res) {
-        var session = res && res.data && res.data.session;
-        if (session) { done(session.user.id); return; }
-        // 还没拿到会话：URL 里有凭证就多等等（等 SDK 从链接里解析出来），否则 8 秒后去登录页
-        setTimeout(function () {
-          if (forwarded) return;
-          if (hasCallback) fail('这个登录链接已失效（可能被用过一次或已过期），请回登录页重新发送～');
+      var pre = manual
+        ? c.auth.setSession(manual).then(function (r) { return r && r.data && r.data.session; }).catch(function () { return null; })
+        : Promise.resolve(null);
+      pre.then(function (got) {
+        if (got) { done(got.user.id); return; }
+        c.auth.getSession().then(function (res) {
+          var session = res && res.data && res.data.session;
+          if (session) { done(session.user.id); return; }
+          // 还没拿到会话：URL 里有凭证就多等等（等 SDK 从链接里解析出来），否则 8 秒后去登录页
+          setTimeout(function () {
+            if (forwarded) return;
+            if (hasCallback) fail('这个登录链接已失效（可能被用过一次或已过期），请回登录页重新发送～');
+            else goLogin();
+          }, 8000);
+        }).catch(function () {
+          if (hasCallback) fail('网络异常，没能完成登录，请回登录页重试～');
           else goLogin();
-        }, 8000);
-      }).catch(function () {
-        if (hasCallback) fail('网络异常，没能完成登录，请回登录页重试～');
-        else goLogin();
+        });
       });
     } catch (e) {
       if (hasCallback) fail('登录初始化失败，请回登录页重试～');
