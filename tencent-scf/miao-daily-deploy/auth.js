@@ -37,8 +37,11 @@
   (function () {
     try {
       var hh = (window.location.hash || '').replace(/^#/, '');
-      if (!/access_token=/.test(hh)) return;
-      var p = new URLSearchParams(hh);
+      // 有些邮箱 App / 中间页会把 # 后的凭证改写成 ? 后的查询参数，两种都认
+      var qs = (window.location.search || '').replace(/^\?/, '');
+      var src = /access_token=/.test(hh) ? hh : (/access_token=/.test(qs) ? qs : '');
+      if (!src) return;
+      var p = new URLSearchParams(src);
       var at = p.get('access_token');
       if (!at) return;
       var seg = at.split('.')[1] || '';

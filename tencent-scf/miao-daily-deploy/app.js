@@ -212,8 +212,11 @@
     var manual = null;
     try {
       var hh = (u.hash || '').replace(/^#/, '');
-      if (/access_token=/.test(hh)) {
-        var p = new URLSearchParams(hh);
+      // 有些邮箱 App / 中间页会把 # 后的凭证改写成 ? 后的查询参数，两种都认
+      var qs = (u.search || '').replace(/^\?/, '');
+      var src = /access_token=/.test(hh) ? hh : (/access_token=/.test(qs) ? qs : '');
+      if (src) {
+        var p = new URLSearchParams(src);
         var at = p.get('access_token');
         if (at) manual = {
           access_token: at,
@@ -225,6 +228,7 @@
     // 判断当前是不是「刚从魔法链接跳回来」：URL 里带登录凭证
     var hasCallback = !!manual ||
                       /access_token=/.test(u.hash) ||
+                      /access_token=/.test(u.search) ||
                       /[?&]code=/.test(u.search) ||
                       /error_description=/.test(u.hash);
 
