@@ -75,7 +75,9 @@
 
 ---
 
-## 🌸 v1.1.1 (2026-09-11) · 体验修复与小优化
+## 🌸 v1.1.1 (2026-09-11) · 体验修复与小优化（已上线）
+
+> 状态：✅ 已上线部署。生产地址：`https://learn-vibe-coding-miao-daily.vercel.app`（Vercel 托管，Supabase 云端登录，任何人邮箱可注册、数据按账号隔离）。
 
 ### 🐛 修复与优化
 - **退出登录**：补上退出按钮事件绑定 + 确认弹窗（之前点击无反应）
@@ -103,7 +105,7 @@
 - 前端：HTML/CSS/JS（沿用 v1.0）
 - BaaS：Supabase（免费版）
 - Auth：Supabase Auth 邮箱魔法链接
-- 数据库：PostgreSQL（4 张表：todos / habits / habit_records / moods）
+- 数据库：PostgreSQL（单表 `user_data`：`user_id` 主键 + `payload` jsonb + `updated_at`，配合 RLS 行级安全 `auth.uid() = user_id`；前端 LocalStorage 作离线缓存 + 800ms 防抖上传云端）
 
 ---
 
