@@ -2,6 +2,7 @@
 // 腾讯云 CloudBase/SCF 云函数：把请求转发到 Supabase，解决国内手机连不上 *.supabase.co 的问题。
 // 前端 config.js 的 url 指向本函数公网地址 + /sb，本函数把 /sb/* 转发到 Supabase。
 const https = require('https');
+const zlib = require('zlib');
 
 const SUPABASE_HOST = 'elvlygokedgbaihbdgrg.supabase.co';
 const SUPABASE_ORIGIN = 'https://' + SUPABASE_HOST;
@@ -11,7 +12,17 @@ function doRequest(options, data) {
     const req = https.request(options, (res) => {
       const chunks = [];
       res.on('data', (c) => chunks.push(c));
-      res.on('end', () => resolve({ statusCode: res.statusCode, headers: res.headers, body: Buffer.concat(chunks) }));
+      res.on('end', () => {
+        let body = Buffer.concat(chunks);
+        // 万一上游还是回了压缩数据（比如网关自己压缩），在这里解压回明文
+        const enc = (res.headers['content-encoding'] || '').toLowerCase();
+        try {
+          if (enc === 'gzip') body = zlib.gunzipSync(body);
+          else if (enc === 'deflate') body = zlib.inflateSync(body);
+          else if (enc === 'br') body = zlib.brotliDecompressSync(body);
+        } catch (e) { /* 解不开就按原文返回 */ }
+        resolve({ statusCode: res.statusCode, headers: res.headers, body: body });
+      });
     });
     req.on('error', reject);
     req.on('timeout', () => reject(new Error('proxy timeout')));
@@ -58,13 +69,20 @@ async function handle(event, context) {
     body = Buffer.from(body, 'base64').toString('utf8');
   }
 
-  // 透传客户端头，但清掉会造成冲突的 host / 代理头
+  // 透传客户端头，但清掉会造成冲突的头：
+  //  - accept-encoding 必须清掉并改成 identity（不压缩）：SCF 回传时会丢掉
+  //    content-encoding 标记，浏览器拿到一坨压缩乱码、JSON 解析必失败（v1.1.2 踩过的坑）
+  //  - content-length 要删掉：body 若被 base64 解码重写，长度会和原始头对不上
   const headers = Object.assign({}, event.headers || {});
   delete headers.host;
   delete headers['x-forwarded-for'];
   delete headers['x-forwarded-proto'];
   delete headers['x-forwarded-host'];
   delete headers['x-real-ip'];
+  delete headers['accept-encoding'];
+  delete headers['content-length'];
+  delete headers.connection;
+  headers['accept-encoding'] = 'identity';
 
   // Supabase 要求请求带 apikey / Authorization；前端 config.js 的 anon key 会在请求头里透传过来
   const options = {
