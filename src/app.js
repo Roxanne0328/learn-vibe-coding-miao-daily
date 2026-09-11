@@ -161,48 +161,46 @@
     }
   }
 
-  // 自己用凭证完成登录：拿 access_token 调 /auth/v1/user 取用户信息，
-  // 然后把会话写进 localStorage。全程不经过 SDK，SDK 卡不卡都无所谓。
+  function decodeJwtPayload(token) {
+    try {
+      var seg = (token || '').split('.')[1] || '';
+      if (!seg) return null;
+      var b = seg.replace(/-/g, '+').replace(/_/g, '/');
+      while (b.length % 4) b += '=';
+      return JSON.parse(atob(b));
+    } catch (e) { return null; }
+  }
+
+  // 自己用凭证完成登录。
+  // v1.1.2：access_token 本身就是 JWT，里面直接写着用户 ID（sub）和邮箱，
+  // 所以**直接在本地拆开读**，一个网络请求都不发，彻底不受代理压缩/网络影响。
   function manualLogin(tokens, cb) {
     var cfg = window.SUPABASE_CONFIG || {};
-    if (!cfg.anonKey || !tokens.access_token) { cb(null, 'URL 里没拿到 access_token'); return; }
-    var settled = false;
-    var timer = setTimeout(function () { finish(null, '请求超时（10秒没响应）'); }, 10000);
-    function finish(raw, err) {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      var user = null;
-      try { user = raw ? JSON.parse(raw) : null; } catch (e) { user = null; }
-      if (!user || !user.id) { cb(null, err || '取不到用户信息'); return; }
-      var now = Math.floor(Date.now() / 1000);
-      var exp = tokens.expires_in || 3600;
-      writeSession({
-        provider_token: null,
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token || '',
-        token_type: tokens.token_type || 'bearer',
-        expires_in: exp,
-        expires_at: now + exp,
-        user: user
-      });
-      cb(user.id, null);
-    }
-    try {
-      var x = new XMLHttpRequest();
-      x.open('GET', cfg.url + '/auth/v1/user', true);
-      x.setRequestHeader('apikey', cfg.anonKey);
-      x.setRequestHeader('Authorization', 'Bearer ' + tokens.access_token);
-      x.setRequestHeader('Accept', 'application/json');
-      x.timeout = 9500;
-      x.onload = function () {
-        if (x.status >= 200 && x.status < 300) finish(x.responseText, null);
-        else finish(null, 'HTTP ' + x.status + '：' + (x.responseText || '').slice(0, 100));
-      };
-      x.onerror = function () { finish(null, '网络请求失败（连不上代理通道）'); };
-      x.ontimeout = function () { finish(null, '网络请求超时'); };
-      x.send();
-    } catch (e) { finish(null, '请求异常：' + (e && e.message)); }
+    if (!tokens.access_token) { cb(null, 'URL 里没拿到 access_token'); return; }
+
+    var p = decodeJwtPayload(tokens.access_token);
+    if (!p || !p.sub) { cb(null, '凭证格式不对，拆不出用户 ID'); return; }
+    if (p.exp && p.exp * 1000 < Date.now()) { cb(null, '登录链接已过期，请回登录页重发一次'); return; }
+
+    var now = Math.floor(Date.now() / 1000);
+    var exp = tokens.expires_in || (p.exp ? Math.max(p.exp - now, 0) : 3600) || 3600;
+    writeSession({
+      provider_token: null,
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token || '',
+      token_type: tokens.token_type || 'bearer',
+      expires_in: exp,
+      expires_at: p.exp || (now + exp),
+      user: {
+        id: p.sub,
+        email: p.email || '',
+        aud: p.aud || '',
+        role: p.role || 'authenticated',
+        app_metadata: { provider: 'email' },
+        user_metadata: {}
+      }
+    });
+    cb(p.sub, null);
   }
 
   function boot() {
