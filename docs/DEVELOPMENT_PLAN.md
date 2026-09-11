@@ -466,3 +466,15 @@ git tag -a v1.0.0 -m "v1.0.0 MVP 正式达成"
 
 **最后更新**：2026-09-11
 **适用范围**：从空目录到 v1.0.0 tag 打出来的完整 8 步 + 发布收尾
+
+---
+
+## 📌 后续补充说明（2026-09-12 · v1.1.2）
+
+本文档写成时部署目标是 Vercel。**v1.1.2 已迁移到腾讯云 CloudBase**，原因和完整排障过程记录在
+[`DEPLOYMENT.md`](DEPLOYMENT.md)，要点：
+
+- Vercel 域名在国内被 DNS 污染（手机报 `-103`，解析到 Facebook IP），换流量无效 → 改为 CloudBase 静态托管
+- Supabase 请求改走 SCF 云函数 `supabase-proxy`（HTTP 触发路径 `/sb`）
+- 因此上文中「Supabase 后台 Site URL 填 Vercel 域名」应改为**填 CloudBase 域名**
+- 移动端登录有 6 个连环坑（CDN / DNS / SDK 卡死 / 压缩乱码 / 项目 ID / `#` 后凭证丢失），逐个定位并解决，详见排障手册
