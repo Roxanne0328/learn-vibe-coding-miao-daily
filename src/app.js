@@ -239,11 +239,28 @@
         if (e.target.classList.contains('todo-delete')) {
           if (!isToday()) return;
           self.remove(id);
-        } else if (e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL') {
+        } else if (e.target.classList.contains('todo-text')) {
           if (!isToday()) return;
-          self.toggle(id);
+          self.edit(id, item);
         }
+        // 勾选框的切换走下面的 change 事件
       });
+
+      $('todoList').addEventListener('change', function (e) {
+        if (e.target.type !== 'checkbox') return;
+        var item = e.target.closest('.todo-item');
+        if (!item) return;
+        if (!isToday()) return;
+        self.toggle(parseInt(item.dataset.id, 10));
+      });
+
+      // 待办字数上限提示
+      var todoInputEl = $('todoInput');
+      if (todoInputEl) {
+        todoInputEl.addEventListener('input', function () {
+          if (this.value.length >= 50) showToast('待办最多 50 字哦～');
+        });
+      }
     },
 
     add: function (text) {
@@ -262,6 +279,45 @@
       save(KEYS.todos, this.allTodos);
       this.render();
       return true;
+    },
+
+    edit: function (id, li) {
+      var self = this;
+      var list = this.allTodos[state.currentDate];
+      if (!list) return;
+      var t = list.find(function (x) { return x.id === id; });
+      if (!t) return;
+      var textSpan = li.querySelector('.todo-text');
+      if (!textSpan) return;
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'todo-edit-input';
+      input.value = t.text;
+      input.maxLength = 50;
+      textSpan.replaceWith(input);
+      input.focus();
+      input.select();
+      var finished = false;
+      function finish(saveIt) {
+        if (finished) return;
+        finished = true;
+        var v = input.value.trim();
+        if (saveIt && v && v !== t.text) {
+          t.text = v;
+          save(KEYS.todos, self.allTodos);
+          self.render();
+        } else {
+          self.render();
+        }
+      }
+      input.addEventListener('input', function () {
+        if (input.value.length >= 50) showToast('待办最多 50 字哦～');
+      });
+      input.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter') { ev.preventDefault(); finish(true); }
+        else if (ev.key === 'Escape') { ev.preventDefault(); finish(false); }
+      });
+      input.addEventListener('blur', function () { finish(true); });
     },
 
     toggle: function (id) {
@@ -285,7 +341,10 @@
     render: function () {
       var listEl = $('todoList');
       listEl.innerHTML = '';
-      var list = this.getCurrentList();
+      // 未完成的待办置顶，已完成的排到后面
+      var list = this.getCurrentList().slice().sort(function (a, b) {
+        return a.completed === b.completed ? 0 : (a.completed ? 1 : -1);
+      });
       var editable = isToday();
 
       if (list.length === 0) {
@@ -298,10 +357,9 @@
           li.innerHTML =
             '<input type="checkbox" id="todo-' + todo.id + '"' +
               (todo.completed ? ' checked' : '') + (editable ? '' : ' disabled') + '>' +
-            '<label for="todo-' + todo.id + '"' +
-              (todo.completed ? ' class="done"' : '') + '>' +
+            '<span class="todo-text' + (todo.completed ? ' done' : '') + '">' +
               escapeHtml(todo.text) +
-            '</label>' +
+            '</span>' +
             (editable ? '<button class="todo-delete" title="删除">×</button>' : '');
           listEl.appendChild(li);
         });
@@ -420,6 +478,13 @@
         });
         input.focus();
       });
+
+      var habitInputEl = $('habitInput');
+      if (habitInputEl) {
+        habitInputEl.addEventListener('input', function () {
+          if (this.value.length >= 12) showToast('习惯名最多 12 字哦～');
+        });
+      }
     },
 
     addHabit: function (name, emoji) {
@@ -485,28 +550,22 @@
     renderSnapshot: function () {
       var grid = $('habitGridSnap');
       if (!grid) return;
-      grid.innerHTML = '';
       var self = this;
+      grid.innerHTML = '';
 
       if (this.habits.length === 0) {
-        grid.innerHTML = '<div class="habit-empty-hint">这天没有打卡哦～</div>';
+        grid.innerHTML = '<div class="habit-empty-hint">还没有习惯哦～</div>';
         $('habitCountSnap').textContent = '';
         return;
       }
 
       var done = this.getDayDone(state.currentDate);
 
-      // 历史模式下：这天没打卡就只显示提示，不再列出习惯按钮
-      if (done.length === 0) {
-        grid.innerHTML = '<div class="habit-empty-hint">这天没有打卡哦～</div>';
-        $('habitCountSnap').textContent = '';
-        return;
-      }
-
+      // 历史视图：显示完整习惯列表，已打卡高亮、未打卡灰显
       this.habits.forEach(function (h) {
         var isDone = done.indexOf(h.id) >= 0;
         var btn = document.createElement('button');
-        btn.className = 'habit-btn' + (isDone ? ' habit-done' : '');
+        btn.className = 'habit-btn' + (isDone ? ' habit-done' : ' habit-muted');
         btn.innerHTML =
           '<span class="habit-emoji">' + escapeHtml(h.emoji || DEFAULT_HABIT_EMOJI) + '</span>' +
           '<span>' + escapeHtml(h.name) + '</span>';
@@ -562,6 +621,7 @@
       var timer;
       $('moodNote').addEventListener('input', function (e) {
         if (!isToday()) return;
+        if (this.value.length >= 200) showToast('心情最多 200 字哦～');
         self.note = e.target.value;
         clearTimeout(timer);
         timer = setTimeout(function () { self.persist(); }, 400);
@@ -835,6 +895,22 @@
     TodoModule.init();
     HabitModule.init();
     MoodModule.init();
+
+    // 退出登录按钮（带确认弹窗）
+    var logoutBtn = $('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', function () {
+        if (!window.confirm('确定要退出登录吗？本地数据仍会保留，下次用同一邮箱登录即可恢复～')) return;
+        var c = window.supabaseClient;
+        if (c) {
+          c.auth.signOut()
+            .then(function () { window.location.href = 'login.html'; })
+            .catch(function () { window.location.href = 'login.html'; });
+        } else {
+          window.location.href = 'login.html';
+        }
+      });
+    }
 
     // 视图切换按钮
     $('openHistory').addEventListener('click', function () {
