@@ -8,6 +8,14 @@
 </head>
 <body data-page-node-id="uLmT9NtUuURsz8WiWtZRuM">
 
+  <!-- 登录校验遮罩：校验期间盖住主界面，避免未登录时闪一下主界面 -->
+  <div id="authGate">
+    <div class="auth-gate-inner">
+      <div class="auth-gate-cat">🐱</div>
+      <p class="auth-gate-text">正在检查登录状态…</p>
+    </div>
+  </div>
+
   <!-- 历史视图（默认隐藏） -->
   <div id="historyView" style="display:none;" data-page-node-id="ZWBj9NCVqzqDeZQ7sXvovQ">
     <main class="app" data-page-node-id="bOfE5jzQql9rXNvgM77bC2">
@@ -221,7 +229,7 @@
 
   <!-- Supabase 云端同步（v1.1.0） -->
   <script src="config.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="vendor/supabase-js.js"></script>
   <script src="supabase.js"></script>
 
   <script src="app.js"></script>

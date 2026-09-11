@@ -30,6 +30,28 @@
   --radius-sm: 12px;
 }
 
+/* 登录校验遮罩：覆盖主界面，直到确认已登录才揭开 */
+#authGate {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+}
+.auth-gate-inner { text-align: center; }
+.auth-gate-cat {
+  font-size: 56px;
+  animation: float-gentle 2.4s ease-in-out infinite;
+}
+.auth-gate-text {
+  margin-top: 14px;
+  color: var(--text-soft);
+  font-size: 15px;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
 

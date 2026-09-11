@@ -93,12 +93,18 @@
       await pushCloud();
       showToast('☁️ 已把本地旧数据同步到云端～');
     }
+    hideGate();
     init();
+  }
+
+  function hideGate() {
+    var g = document.getElementById('authGate');
+    if (g) g.style.display = 'none';
   }
 
   function boot() {
     var c = window.supabaseClient;
-    if (!c) { init(); return; } // 没接 Supabase 时退回纯本地模式
+    if (!c) { hideGate(); init(); return; } // 没接 Supabase 时退回纯本地模式
     c.auth.getSession().then(function (res) {
       var session = res && res.data && res.data.session;
       if (session) { startApp(session.user.id); return; }
