@@ -102,27 +102,73 @@
     if (g) g.style.display = 'none';
   }
 
+  // 自己用凭证完成登录：拿 access_token 调 /auth/v1/user 取用户信息，
+  // 然后把会话按 SDK 的存储格式写进 localStorage（key: sb-<ref>-auth-token），
+  // 这样刷新后 SDK 的 getSession() 能直接读到，完全不需要 SDK 参与。
+  function manualLogin(tokens, cb) {
+    var cfg = window.SUPABASE_CONFIG || {};
+    var m = (cfg.url || '').match(/https:\/\/([^.]+)\.supabase\.co/) || [];
+    if (!m[1] || !cfg.anonKey || !tokens.refresh_token) { cb(null); return; }
+    var storageKey = 'sb-' + m[1] + '-auth-token';
+    var settled = false;
+    var timer = setTimeout(function () { finish(null); }, 10000);
+    function finish(raw) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try {
+        var user = raw ? JSON.parse(raw) : null;
+        if (!user || !user.id) { cb(null); return; }
+        var now = Math.floor(Date.now() / 1000);
+        var session = {
+          provider_token: null,
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+          token_type: 'bearer',
+          expires_in: tokens.expires_in,
+          expires_at: now + tokens.expires_in,
+          user: user
+        };
+        try { localStorage.setItem(storageKey, JSON.stringify(session)); } catch (e) {}
+        cb(user.id);
+      } catch (e) { cb(null); }
+    }
+    try {
+      var x = new XMLHttpRequest();
+      x.open('GET', cfg.url + '/auth/v1/user', true);
+      x.setRequestHeader('apikey', cfg.anonKey);
+      x.setRequestHeader('Authorization', 'Bearer ' + tokens.access_token);
+      x.timeout = 9500;
+      x.onload = function () { finish(x.status >= 200 && x.status < 300 ? x.responseText : null); };
+      x.onerror = x.ontimeout = function () { finish(null); };
+      x.send();
+    } catch (e) { finish(null); }
+  }
+
   function boot() {
     var c = window.supabaseClient;
     if (!c) { hideGate(); init(); return; } // 没接 Supabase 时退回纯本地模式
 
     var u = window.location;
-    // 兜底用：SDK 万一没自动解析 URL 里的凭证，我们自己取出来手动登录
+    // 兜底用：SDK 在手机上初始化可能卡住，凭证我们自己解析、自己登录，不依赖 SDK
     var manual = null;
     try {
       var hh = (u.hash || '').replace(/^#/, '');
       if (/access_token=/.test(hh)) {
         var p = new URLSearchParams(hh);
         var at = p.get('access_token');
-        if (at) manual = { access_token: at, refresh_token: p.get('refresh_token') || '' };
+        if (at) manual = {
+          access_token: at,
+          refresh_token: p.get('refresh_token') || '',
+          expires_in: parseInt(p.get('expires_in') || '3600', 10) || 3600
+        };
       }
     } catch (e) {}
     // 判断当前是不是「刚从魔法链接跳回来」：URL 里带登录凭证
     var hasCallback = !!manual ||
                       /access_token=/.test(u.hash) ||
                       /[?&]code=/.test(u.search) ||
-                      /error_description=/.test(u.hash) ||
-                      /[?&]token=/.test(u.search);
+                      /error_description=/.test(u.hash);
 
     var forwarded = false;
     function goLogin() {
@@ -139,10 +185,16 @@
       forwarded = true;
     }
 
-    var guard = setTimeout(function () {
-      if (hasCallback) fail('登录链接处理超时，请回登录页重新发送一次～');
-      else goLogin();
-    }, hasCallback ? 15000 : 8000);
+    // URL 里有凭证 → 完全绕开 SDK 自己完成登录（SDK 的 setSession 会等 initializePromise，
+    // 手机上初始化卡住时 setSession 永远不返回，之前就是卡死在这里）
+    if (manual) {
+      manualLogin(manual, function (userId) {
+        if (userId) done(userId);
+        else fail('登录没完成（可能网络抖动），请刷新本页再试一次，或回登录页重发链接～');
+      });
+      return;
+    }
+    var guard = setTimeout(goLogin, 8000);
 
     function done(uid) {
       if (forwarded) return;
@@ -162,25 +214,14 @@
           goLogin();
         }
       });
-      var pre = manual
-        ? c.auth.setSession(manual).then(function (r) { return r && r.data && r.data.session; }).catch(function () { return null; })
-        : Promise.resolve(null);
-      pre.then(function (got) {
-        if (got) { done(got.user.id); return; }
-        c.auth.getSession().then(function (res) {
-          var session = res && res.data && res.data.session;
-          if (session) { done(session.user.id); return; }
-          // 还没拿到会话：URL 里有凭证就多等等（等 SDK 从链接里解析出来），否则 8 秒后去登录页
-          setTimeout(function () {
-            if (forwarded) return;
-            if (hasCallback) fail('这个登录链接已失效（可能被用过一次或已过期），请回登录页重新发送～');
-            else goLogin();
-          }, 8000);
-        }).catch(function () {
-          if (hasCallback) fail('网络异常，没能完成登录，请回登录页重试～');
-          else goLogin();
-        });
-      });
+      c.auth.getSession().then(function (res) {
+        var session = res && res.data && res.data.session;
+        if (session) { done(session.user.id); return; }
+        setTimeout(function () {
+          if (forwarded) return;
+          goLogin();
+        }, 8000);
+      }).catch(function () { goLogin(); });
     } catch (e) {
       if (hasCallback) fail('登录初始化失败，请回登录页重试～');
       else goLogin();
