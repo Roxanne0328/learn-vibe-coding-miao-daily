@@ -478,3 +478,14 @@ git tag -a v1.0.0 -m "v1.0.0 MVP 正式达成"
 - Supabase 请求改走 SCF 云函数 `supabase-proxy`（HTTP 触发路径 `/sb`）
 - 因此上文中「Supabase 后台 Site URL 填 Vercel 域名」应改为**填 CloudBase 域名**
 - 移动端登录有 6 个连环坑（CDN / DNS / SDK 卡死 / 压缩乱码 / 项目 ID / `#` 后凭证丢失），逐个定位并解决，详见排障手册
+
+---
+
+## 📌 后续补充说明（2026-09-12 · v1.1.4 hotfix）
+
+v1.1.3 验证码登录上线后，朋友实测又发现 2 个遗留 bug，hotfix 在 v1.1.4：
+
+1. **新邮箱 `type` 不匹配**：全新邮箱走 Confirm signup 模板，验证接口必须传 `type=signup` 才命中；前端改为 `signup → magiclink → email` 三种全试（详见 [`DEPLOYMENT.md` § 坑 7](DEPLOYMENT.md#坑-7--新邮箱验证-type-不匹配)）
+2. **localStorage 没按用户隔离**：业务键全部加 `__<uid>` 后缀 + 首次登录迁移旧数据（详见 [`DEPLOYMENT.md` § 坑 8](DEPLOYMENT.md#坑-8--localstorage-数据没按用户隔离)）
+
+> ⚠️ 给后续接手本项目的 AI / 开发者：**所有 localStorage 业务键必须走 `userKey(name)` 函数**，绝不能直接写全局键，否则会立刻破坏多账号隔离。

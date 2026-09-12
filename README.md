@@ -2,7 +2,7 @@
 
 咪咪大人的第一个 vibe coding 项目 —— 一个温暖治愈的日常计划网页。
 
-> 当前版本：**v1.1.3**（2026-09-12）
+> 当前版本：**v1.1.4**（2026-09-12）
 > 在线地址：https://miao-daily-miao-daily-d1gmyiugua09ec60d.webapps.tcloudbase.com
 
 ## 功能

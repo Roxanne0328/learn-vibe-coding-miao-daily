@@ -276,7 +276,65 @@ curl -sI "https://miao-daily-d1gmyiugua09ec60d-1484425697.ap-shanghai.app.tcloud
 
 ---
 
-## 六、一份提醒：别让 AI 瞎改这个项目
+## 六、v1.1.4 上线后修复的 2 个坑（朋友测试反馈）
+
+> 这两个坑是上线后真实朋友使用时才发现的，不在 v1.1.2 那晚的"6 个坑"里。
+> 修复均已合并（commit 4d56a49 / 57048be / 2e6bbf8），线上版本同步生效。
+
+---
+
+### 坑 7 · 新邮箱验证 `type` 不匹配
+
+| | |
+|---|---|
+| **现象** | 朋友 A 是新邮箱（从没注册过），填验证码后报「验证码不对」；同一个手机/电脑的**老邮箱**反而能正常登 |
+| **根因** | Supabase 对**首次注册**的邮箱，发码走的是 **Confirm signup** 模板，不是 Magic Link 模板；验证接口 `POST /auth/v1/verify` 的 `type` 参数必须传 `signup` 才能匹配上那封邮件 |
+| **二次坑** | 老代码看到「验证码不对」错误就放弃，其实错误码是 `401`（type 不匹配），不是 `400`（type 错误）；按错误码逻辑会被 401 误判为「网络/凭证问题」根本没机会试其他 type |
+| **解法** | **前端自动全试**：验证码接口改为按 `signup → magiclink → email` 顺序轮询调用，第一个返回 200 就用那个 type 的会话登入 |
+
+```js
+async function verifyCode(email, code) {
+  for (const type of ['signup', 'magiclink', 'email']) {
+    const res = await fetch(API + '/auth/v1/verify', {
+      method: 'POST',
+      headers: { apikey: ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, token: code, type })
+    });
+    if (res.ok) return await res.json();  // 命中即返回
+  }
+  throw new Error('验证码不对，或邮箱没收到验证码');
+}
+```
+
+**配套**：Supabase 后台 **Confirm signup 模板**的 Body 也要改成含 `{{ .Token }}` 的验证码文案（之前只改了 Magic Link，新邮箱走的是另一条模板路径）。
+
+---
+
+### 坑 8 · localStorage 数据没按用户隔离
+
+| | |
+|---|---|
+| **现象** | 同浏览器退出 A 账号、登录 B 账号，三个模块显示的还是 A 的数据；看起来"账号隔离"失效 |
+| **根因** | 所有业务数据存的是 `localStorage['miao_daily_todos']` / `['_habits']` / `['_mood']` 这种**全局键**，根本没按用户 ID 隔离。退出只清 SDK 会话，业务数据原封不动留在浏览器里 |
+| **解法** | **所有键加 `__<uid>` 后缀**：`userKey('todos')` 返回 `'miao_daily_todos__abc123...'`（uid 从当前会话 JWT 的 `sub` 解出） |
+
+```js
+function userKey(name) {
+  return 'miao_daily_' + name + '__' + currentUid();  // uid 来自 JWT sub
+}
+
+// 全部 22 处业务键替换
+localStorage.getItem(userKey('todos'));
+localStorage.setItem(userKey('habit_list'), JSON.stringify(...));
+```
+
+**老用户兼容**：`migrateOldData()` 首次登录跑一次，把旧版全局键的数据**复制**到当前用户键，再标 `migrate_v17_done__<uid>` 防重复迁移——已用过的老账号一条数据都不丢。
+
+**云同步侧**：`pullCloud()` 拉云端数据写入本地时也按 `userKey()` 重定位；不然拉到 A 的云端数据会写到 B 的全局键里。
+
+---
+
+## 七、一份提醒：别让 AI 瞎改这个项目
 
 排查期间，另一个 AI 工具给出过两份「诊断报告」，都**没有真正读取项目结构**：
 
