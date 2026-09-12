@@ -244,36 +244,33 @@
       // Supabase 发邮件时按用户状态走不同模板：
       //   - 已存在用户 → Magic Link 模板，verify type=magiclink
       //   - 新邮箱首次  → Confirm signup 模板，verify type=signup
-      // 前端没法判断当前是新用户还是老用户，把这两个 type 都试一遍，命中哪个用哪个
-      var res = await tryVerify('magiclink', code);
-      if (res.status === 400 && res.data && /type/i.test(String(res.data.msg || res.data.error || ''))) {
-        res = await tryVerify('signup', code);
-      }
-      // 兼容极老的 supabase-js 写法（type=email）
-      if (res.status === 400 && res.data && /type/i.test(String(res.data.msg || res.data.error || ''))) {
-        res = await tryVerify('email', code);
-      }
+      // 前端没法判断当前是新用户还是老用户，而且 Supabase 在 type 不匹配时
+      // 返回 401（不是 400 + type 错），所以不能靠错误码判断 fallback——
+      // 直接把所有可能的 type 都试一遍，哪个返回完整会话用哪个。
+      var res = null;
+      res = await tryVerify('signup', code);
+      if (!isVerifyOk(res)) res = await tryVerify('magiclink', code);
+      if (!isVerifyOk(res)) res = await tryVerify('email', code);
 
-      if (res.status >= 200 && res.status < 300 && res.data && res.data.access_token && res.data.user) {
+      if (isVerifyOk(res)) {
         saveSessionAndGo(res.data);
         return;
       }
 
-      // 401/403 = 验证码本身错或过期（不是 type 问题），直接报错
-      if (res.status === 401 || res.status === 403) {
-        setVerifyMsg('验证码不对或已过期，检查一下数字～（10 分钟内有效）', 'err');
-      } else if (res.status === 429) {
+      if (res.status === 429) {
         setVerifyMsg('试得太频繁啦，请等 1 分钟再试～', 'err');
-      } else if (res.status >= 200 && res.status < 300 && (!res.data || !res.data.access_token)) {
-        setVerifyMsg('登录完成但数据异常，请刷新再试～', 'err');
       } else {
-        var hint = res.data && (res.data.msg || res.data.error_description || res.data.error);
-        setVerifyMsg('验证失败（HTTP ' + res.status + (hint ? '：' + hint : '') + '），告诉我这个数字～', 'err');
+        setVerifyMsg('验证码不对或已过期，检查一下数字～（10 分钟内有效）', 'err');
       }
     } catch (err) {
       setVerifyMsg('网络不通（' + (err && err.message ? err.message : err) + '），稍后再试～', 'err');
     }
     if (verifyBtn) { verifyBtn.disabled = false; verifyBtn.textContent = '✅ 登录'; }
+  }
+
+  // 判断 verify 是否成功（拿到完整会话就算成功）
+  function isVerifyOk(r) {
+    return r && r.status >= 200 && r.status < 300 && r.data && r.data.access_token && r.data.user;
   }
 
   if (verifyBtn) verifyBtn.addEventListener('click', verifyCode);
