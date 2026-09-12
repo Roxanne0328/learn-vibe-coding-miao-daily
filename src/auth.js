@@ -241,8 +241,15 @@
     setVerifyMsg('', '');
 
     try {
+      // Supabase 发邮件时按用户状态走不同模板：
+      //   - 已存在用户 → Magic Link 模板，verify type=magiclink
+      //   - 新邮箱首次  → Confirm signup 模板，verify type=signup
+      // 前端没法判断当前是新用户还是老用户，把这两个 type 都试一遍，命中哪个用哪个
       var res = await tryVerify('magiclink', code);
-      // magiclink 不被接受（报 type 相关错误）→ 换 'email' 再试
+      if (res.status === 400 && res.data && /type/i.test(String(res.data.msg || res.data.error || ''))) {
+        res = await tryVerify('signup', code);
+      }
+      // 兼容极老的 supabase-js 写法（type=email）
       if (res.status === 400 && res.data && /type/i.test(String(res.data.msg || res.data.error || ''))) {
         res = await tryVerify('email', code);
       }
@@ -252,15 +259,16 @@
         return;
       }
 
-      if (res.status === 400 || res.status === 403) {
+      // 401/403 = 验证码本身错或过期（不是 type 问题），直接报错
+      if (res.status === 401 || res.status === 403) {
         setVerifyMsg('验证码不对或已过期，检查一下数字～（10 分钟内有效）', 'err');
       } else if (res.status === 429) {
         setVerifyMsg('试得太频繁啦，请等 1 分钟再试～', 'err');
-      } else if (!res.data && res.status >= 200 && res.status < 300) {
-        // 状态码成功但内容解析不出来（理论上云函数修复后不会发生）
-        setVerifyMsg('登录完成但数据异常，请展开下方「用链接登录」试试粘贴通道～', 'err');
+      } else if (res.status >= 200 && res.status < 300 && (!res.data || !res.data.access_token)) {
+        setVerifyMsg('登录完成但数据异常，请刷新再试～', 'err');
       } else {
-        setVerifyMsg('验证失败（HTTP ' + res.status + '），告诉我这个数字～', 'err');
+        var hint = res.data && (res.data.msg || res.data.error_description || res.data.error);
+        setVerifyMsg('验证失败（HTTP ' + res.status + (hint ? '：' + hint : '') + '），告诉我这个数字～', 'err');
       }
     } catch (err) {
       setVerifyMsg('网络不通（' + (err && err.message ? err.message : err) + '），稍后再试～', 'err');
