@@ -8,13 +8,25 @@
 (function () {
   'use strict';
 
-  /* ===== 存储键名 ===== */
+  /* ===== 存储键名（v1.1.3：按用户隔离，不同账号同一浏览器不互相覆盖） ===== */
   var KEYS = {
     todos: 'miao_daily_todos',            // { "YYYY-MM-DD": [todo,...] }
     habits: 'miao_daily_habit_list',      // [habit,...]
     habitRecords: 'miao_daily_habit_records', // { date: [habitId,...] }
     mood: 'miao_daily_mood'               // { date: {mood, note} }
   };
+
+  // 用户维度的键名：有用户 ID 时带 __<uid> 后缀,实现同一浏览器不同账号数据隔离。
+  // 没用户 ID 时(未登录态)回退到旧全局键,兼容纯本地模式。
+  function userKey(name) {
+    var uid = window.__miaoUserId || '';
+    return KEYS[name] + (uid ? '__' + uid : '');
+  }
+
+  // 当前用户的所有同步键(用于云端 pullCloud/pushCloud)
+  function syncKeys() {
+    return [userKey('todos'), userKey('habits'), userKey('habitRecords'), userKey('mood')];
+  }
 
   var DEFAULT_HABIT_EMOJI = '⭐';
   var ID_TO_EMOJI = { water: '💧', read: '📖', sleep: '🛌', exercise: '🏃' };
@@ -35,8 +47,7 @@
     if (window.supabaseClient && window.__miaoUserId) scheduleSync();
   }
 
-  /* ===== 云端同步（v1.1.2：直连 REST，不走 SDK） ===== */
-  var SYNC_KEYS = [KEYS.todos, KEYS.habits, KEYS.habitRecords, KEYS.mood];
+  /* ===== 云端同步（v1.1.2：直连 REST，不走 SDK；v1.1.3：键名按用户隔离） ===== */
   var syncTimer = null;
 
   function apiBase() { return (window.SUPABASE_CONFIG || {}).url || ''; }
@@ -61,7 +72,7 @@
 
   function buildPayload() {
     var payload = {};
-    SYNC_KEYS.forEach(function (k) {
+    syncKeys().forEach(function (k) {
       var raw = localStorage.getItem(k);
       try { payload[k] = raw ? JSON.parse(raw) : null; }
       catch (e) { payload[k] = null; }
@@ -92,9 +103,19 @@
       var arr = await r.json();
       var data = arr && arr[0];
       if (data && data.payload && typeof data.payload === 'object') {
+        // 云端存的键可能是旧全局名(无 uid 后缀)或新用户键,把数据写回本地时强制按 userKey 命名,
+        // 这样不同账号自然隔离
         Object.keys(data.payload).forEach(function (k) {
           if (data.payload[k] != null) {
-            try { localStorage.setItem(k, JSON.stringify(data.payload[k])); } catch (e) {}
+            try {
+              // k 形如 'miao_daily_todos' 或 'miao_daily_todos__<uid>'，找到对应的基础名
+              var baseName = null;
+              Object.keys(KEYS).forEach(function (n) {
+                if (k === KEYS[n] || k.indexOf(KEYS[n] + '__') === 0) baseName = n;
+              });
+              var writeKey = baseName ? userKey(baseName) : k;
+              localStorage.setItem(writeKey, JSON.stringify(data.payload[k]));
+            } catch (e) {}
           }
         });
         return data.payload;
@@ -107,8 +128,10 @@
     window.__miaoUserId = uid;
     // 先揭开遮罩、先把界面跑起来，云端同步放后台慢慢来（最多等 6 秒，卡也不影响使用）
     hideGate();
+    // 旧版本(无用户隔离)数据迁移: 如果用户键为空但旧全局键有数据, 复制到用户键(保留旧键)
+    migrateOldData();
     init();
-    var hadLocal = SYNC_KEYS.some(function (k) { return !!localStorage.getItem(k); });
+    var hadLocal = syncKeys().some(function (k) { return !!localStorage.getItem(k); });
     var cloud = await Promise.race([
       pullCloud(uid),
       new Promise(function (r) { setTimeout(function () { r(null); }, 6000); })
@@ -118,6 +141,21 @@
       await pushCloud();
       showToast('☁️ 已把本地旧数据同步到云端～');
     }
+  }
+
+  // v1.1.3 旧数据迁移: 如果用户键没数据但旧全局键有, 复制到当前用户键, 旧键保留防止误删
+  function migrateOldData() {
+    try {
+      Object.keys(KEYS).forEach(function (name) {
+        var newKey = userKey(name);
+        if (newKey === KEYS[name]) return; // 未登录态不需要迁移
+        if (localStorage.getItem(newKey)) return; // 新键已有数据说明这不是旧用户
+        var oldVal = localStorage.getItem(KEYS[name]);
+        if (oldVal) {
+          localStorage.setItem(newKey, oldVal);
+        }
+      });
+    } catch (e) {}
   }
 
   function hideGate() {
@@ -381,14 +419,14 @@
     allTodos: {},
 
     init: function () {
-      var stored = load(KEYS.todos, null);
+      var stored = load(userKey("todos"), null);
 
       // 兼容旧格式（数组）→ 迁移到今天
       if (Array.isArray(stored)) {
         var oldArr = stored;
         this.allTodos = {};
         this.allTodos[todayStr()] = oldArr;
-        save(KEYS.todos, this.allTodos);
+        save(userKey("todos"), this.allTodos);
       } else if (stored && typeof stored === 'object') {
         this.allTodos = stored;
       } else {
@@ -399,7 +437,7 @@
           { id: 2, text: '整理书桌', completed: false },
           { id: 3, text: '喝一杯水', completed: true }
         ];
-        save(KEYS.todos, this.allTodos);
+        save(userKey("todos"), this.allTodos);
       }
 
       this.bind();
@@ -469,7 +507,7 @@
         text: text,
         completed: false
       });
-      save(KEYS.todos, this.allTodos);
+      save(userKey("todos"), this.allTodos);
       this.render();
       return true;
     },
@@ -497,7 +535,7 @@
         var v = input.value.trim();
         if (saveIt && v && v !== t.text) {
           t.text = v;
-          save(KEYS.todos, self.allTodos);
+          save(userKey("todos"), self.allTodos);
           self.render();
         } else {
           self.render();
@@ -519,7 +557,7 @@
       var t = list.find(function (x) { return x.id === id; });
       if (!t) return;
       t.completed = !t.completed;
-      save(KEYS.todos, this.allTodos);
+      save(userKey("todos"), this.allTodos);
       this.render();
     },
 
@@ -527,7 +565,7 @@
       var list = this.allTodos[state.currentDate];
       if (!list) return;
       this.allTodos[state.currentDate] = list.filter(function (x) { return x.id !== id; });
-      save(KEYS.todos, this.allTodos);
+      save(userKey("todos"), this.allTodos);
       this.render();
     },
 
@@ -603,10 +641,10 @@
     records: {},
 
     init: function () {
-      var stored = load(KEYS.habits, null);
+      var stored = load(userKey("habits"), null);
       if (!stored) {
         this.habits = this.defaultHabits;
-        save(KEYS.habits, this.habits);
+        save(userKey("habits"), this.habits);
       } else {
         this.habits = stored;
       }
@@ -615,9 +653,9 @@
         delete h.icon;
         return h;
       });
-      save(KEYS.habits, this.habits);
+      save(userKey("habits"), this.habits);
 
-      this.records = load(KEYS.habitRecords, {});
+      this.records = load(userKey("habitRecords"), {});
       this.bind();
       this.render();
     },
@@ -688,14 +726,14 @@
       }
       var id = 'habit_' + Date.now();
       this.habits.push({ id: id, name: name, emoji: emoji || DEFAULT_HABIT_EMOJI });
-      save(KEYS.habits, this.habits);
+      save(userKey("habits"), this.habits);
       this.render();
       return true;
     },
 
     removeHabit: function (id) {
       this.habits = this.habits.filter(function (h) { return h.id !== id; });
-      save(KEYS.habits, this.habits);
+      save(userKey("habits"), this.habits);
       this.render();
     },
 
@@ -706,7 +744,7 @@
       if (idx >= 0) arr.splice(idx, 1);
       else arr.push(id);
       this.records[day] = arr;
-      save(KEYS.habitRecords, this.records);
+      save(userKey("habitRecords"), this.records);
       this.render();
     },
 
@@ -786,7 +824,7 @@
     note: '',
 
     loadDay: function (dateStr) {
-      var data = load(KEYS.mood, {});
+      var data = load(userKey("mood"), {});
       var day = data[dateStr] || { mood: null, note: '' };
       this.current = day.mood;
       this.note = day.note || '';
@@ -822,9 +860,9 @@
     },
 
     persist: function () {
-      var all = load(KEYS.mood, {});
+      var all = load(userKey("mood"), {});
       all[state.currentDate] = { mood: this.current, note: this.note };
-      save(KEYS.mood, all);
+      save(userKey("mood"), all);
     },
 
     render: function () {
